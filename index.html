@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Still Waters — Mindfulness Planner v3</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#6e8060">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Still Waters">
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -1281,12 +1286,17 @@ body.hide-journal .journal-panel-section { display:none !important; }
       <div class="settings-section">
         <h3>🔔 <span data-i18n="notifications">Notifications</span></h3>
         <div class="setting-row">
-          <div><div class="setting-label" data-i18n="daily_reminder">Daily reminder</div><div class="setting-sub" data-i18n="daily_reminder_sub">A gentle nudge to begin your practice</div></div>
+          <div><div class="setting-label" data-i18n="daily_reminder">Daily reminder</div><div class="setting-sub" data-i18n="daily_reminder_sub">A gentle nudge to begin your practice — most reliable once Still Waters is installed as an app</div></div>
           <label class="sw"><input type="checkbox" id="toggle-notif"><span class="sw-slider"></span></label>
         </div>
         <div id="notif-time-row" style="display:none;" class="setting-row">
           <div class="setting-label" data-i18n="reminder_time">Reminder time</div>
           <input type="time" id="notif-time" value="07:00" style="background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.3rem 0.6rem;color:var(--ink);font-family:'DM Mono',monospace;font-size:0.7rem;outline:none;"/>
+        </div>
+        <div style="font-size:0.85rem;color:var(--ink-soft);font-style:italic;margin-top:0.6rem;line-height:1.6;">
+          For the best chance of reminders arriving, add Still Waters to your home screen
+          (your browser's <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong> option)
+          and keep it open in the background rather than fully closing it.
         </div>
       </div>
 
@@ -3792,11 +3802,29 @@ function renderSettings(){
   const savedNotif=S.get('sw_notif',false);
   toggleNotif.checked=savedNotif; notifTimeRow.style.display=savedNotif?'flex':'none';
   document.getElementById('notif-time').value=S.get('sw_notif_time','07:00');
-  toggleNotif.addEventListener('change',e=>{
-    S.set('sw_notif',e.target.checked); notifTimeRow.style.display=e.target.checked?'flex':'none';
-    if(e.target.checked && 'Notification' in window) Notification.requestPermission().then(p=>{ if(p!=='granted') toast('Enable notifications in browser settings'); else{ toast('✦ Reminder enabled'); scheduleNotification(); } });
-  });
-  document.getElementById('notif-time').addEventListener('change',e=>{ S.set('sw_notif_time',e.target.value); scheduleNotification(); });
+  toggleNotif.onchange=e=>{
+    if(e.target.checked){
+      if(!('Notification' in window)){
+        toast('Notifications are not supported in this browser');
+        e.target.checked=false; return;
+      }
+      Notification.requestPermission().then(p=>{
+        if(p!=='granted'){
+          toast('Please allow notifications in your browser settings');
+          e.target.checked=false; S.set('sw_notif',false); notifTimeRow.style.display='none';
+        } else {
+          S.set('sw_notif',true); notifTimeRow.style.display='flex';
+          const usingSW = swRegistration && swRegistration.active;
+          toast(usingSW ? '✦ Daily reminder enabled' : '✦ Reminder enabled — keep this tab open for it to fire');
+          scheduleNotification();
+        }
+      });
+    } else {
+      S.set('sw_notif',false); notifTimeRow.style.display='none';
+      cancelNotification();
+    }
+  };
+  document.getElementById('notif-time').onchange=e=>{ S.set('sw_notif_time',e.target.value); scheduleNotification(); };
   // PIN
   const togglePin=document.getElementById('toggle-pin');
   togglePin.checked=!!S.get('sw_pin');
@@ -3963,16 +3991,63 @@ function applyImgAdjustment(){
   toast('✦ Wallpaper applied');
 }
 
+/* ── Service Worker registration (enables PWA install + offline + background reminders) ── */
+let swRegistration = null;
+async function registerServiceWorker(){
+  if(!('serviceWorker' in navigator)) return null;
+  try{
+    swRegistration = await navigator.serviceWorker.register('./sw.js');
+    if('periodicSync' in swRegistration){
+      try{
+        const status = await navigator.permissions.query({name:'periodic-background-sync'});
+        if(status.state === 'granted'){
+          await swRegistration.periodicSync.register('still-waters-daily-reminder', { minInterval: 24*60*60*1000 });
+        }
+      }catch(e){}
+    }
+    return swRegistration;
+  }catch(e){ return null; }
+}
+
+let _notifTimeoutId=null;
 function scheduleNotification(){
-  const time=S.get('sw_notif_time','07:00'); const [h,m]=time.split(':').map(Number);
+  if(!('Notification' in window)) return;
+  if(Notification.permission!=='granted') return;
+  const time=S.get('sw_notif_time','07:00');
+  // Prefer scheduling inside the Service Worker — it can keep running
+  // briefly after the tab closes and survives page reloads/navigation.
+  if(swRegistration && swRegistration.active){
+    swRegistration.active.postMessage({ type:'SCHEDULE_REMINDER', time });
+    return;
+  }
+  // Fallback — schedule directly on the page if no service worker is available.
+  // This only fires while this tab stays open.
+  if(_notifTimeoutId) clearTimeout(_notifTimeoutId);
+  const [h,m]=time.split(':').map(Number);
   const now=new Date(); const next=new Date();
   next.setHours(h,m,0,0); if(next<=now) next.setDate(next.getDate()+1);
   const delay=next-now;
-  setTimeout(()=>{
-    if(Notification.permission==='granted') new Notification('Still Waters 🌿',{body:'Your mindfulness practice is waiting. Even two minutes counts.',icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌿</text></svg>'});
-    scheduleNotification(); // reschedule for next day
+  _notifTimeoutId=setTimeout(()=>{
+    if(Notification.permission==='granted'){
+      try{
+        new Notification('Still Waters 🌿',{
+          body:'Your mindfulness practice is waiting. Even two minutes counts.',
+          icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌿</text></svg>'
+        });
+      }catch(e){}
+    }
+    scheduleNotification();
   },delay);
 }
+function cancelNotification(){
+  if(_notifTimeoutId){ clearTimeout(_notifTimeoutId); _notifTimeoutId=null; }
+  if(swRegistration && swRegistration.active) swRegistration.active.postMessage({ type:'CANCEL_REMINDER' });
+}
+// Re-arm whenever the tab regains focus — setTimeout-based scheduling
+// pauses while a tab/device is backgrounded or asleep.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible' && S.get('sw_notif',false)) scheduleNotification();
+});
 function loadSavedSettings(){
   // Font size
   loadFontSize();
@@ -3987,8 +4062,8 @@ function loadSavedSettings(){
   // Display
   if(S.get('sw_hide_wc',false)) document.body.classList.add('hide-wordcount');
   if(S.get('sw_hide_journal',false)) document.body.classList.add('hide-journal');
-  // Notif
-  if(S.get('sw_notif',false) && Notification.permission==='granted') scheduleNotification();
+  // Notif — only attempt if the API exists and permission was already granted
+  if(S.get('sw_notif',false) && 'Notification' in window && Notification.permission==='granted') scheduleNotification();
 }
 
 /* ════════════════════════════════════════════
@@ -4322,6 +4397,10 @@ initAffirmations();
 initCustomEmojiBars();
 initAmbientSound();
 initCloudSync();
+registerServiceWorker().then(()=>{
+  // If a reminder was already enabled, re-arm it now that the SW is ready
+  if(S.get('sw_notif',false) && 'Notification' in window && Notification.permission==='granted') scheduleNotification();
+});
 </script>
 </body>
 </html>
