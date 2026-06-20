@@ -1293,10 +1293,48 @@ body.hide-journal .journal-panel-section { display:none !important; }
           <div class="setting-label" data-i18n="reminder_time">Reminder time</div>
           <input type="time" id="notif-time" value="07:00" style="background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.3rem 0.6rem;color:var(--ink);font-family:'DM Mono',monospace;font-size:0.7rem;outline:none;"/>
         </div>
-        <div style="font-size:0.85rem;color:var(--ink-soft);font-style:italic;margin-top:0.6rem;line-height:1.6;">
-          For the best chance of reminders arriving, add Still Waters to your home screen
-          (your browser's <strong>"Install app"</strong> or <strong>"Add to Home Screen"</strong> option)
-          and keep it open in the background rather than fully closing it.
+
+        <!-- Install / reminder guide — collapsible -->
+        <button id="install-guide-toggle" onclick="toggleInstallGuide()"
+          style="width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.7rem 1rem;cursor:pointer;margin-top:0.8rem;transition:all 0.18s;">
+          <span style="font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--sage);">📲 How to install &amp; get reminders working</span>
+          <span id="install-guide-arrow" style="color:var(--sage);font-size:0.9rem;transition:transform 0.25s;">›</span>
+        </button>
+
+        <div id="install-guide-body" style="display:none;margin-top:0.8rem;background:var(--sage-pale);border:1px solid var(--sage-light);border-radius:var(--radius);padding:1.1rem 1.3rem;">
+
+          <div style="font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--sage);margin-bottom:0.5rem;">📱 iPhone (Safari)</div>
+          <ol style="margin:0 0 1.1rem 1.1rem;padding:0;font-size:0.88rem;color:var(--ink-soft);line-height:1.7;">
+            <li>Open this site in <strong>Safari</strong> (not Chrome — this only works in Safari on iPhone)</li>
+            <li>Tap the <strong>Share icon</strong> (square with an arrow, at the bottom of the screen)</li>
+            <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+            <li>Tap <strong>"Add"</strong> in the top right</li>
+            <li>Open Still Waters from your <strong>home screen icon</strong> from now on — not the browser</li>
+            <li>Come back here, toggle <strong>Daily reminder</strong> on, and allow notifications when asked</li>
+          </ol>
+
+          <div style="font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--sage);margin-bottom:0.5rem;">🤖 Android (Chrome)</div>
+          <ol style="margin:0 0 1.1rem 1.1rem;padding:0;font-size:0.88rem;color:var(--ink-soft);line-height:1.7;">
+            <li>Open this site in <strong>Chrome</strong></li>
+            <li>Tap the <strong>⋮ three-dot menu</strong> in the top right</li>
+            <li>Tap <strong>"Install app"</strong> (sometimes shown as "Add to Home screen")</li>
+            <li>Confirm by tapping <strong>"Install"</strong></li>
+            <li>Open Still Waters from its new <strong>app icon</strong> going forward</li>
+            <li>Toggle <strong>Daily reminder</strong> on below and allow notifications when asked</li>
+          </ol>
+
+          <div style="font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--sage);margin-bottom:0.5rem;">💻 Desktop (Chrome / Edge / Brave)</div>
+          <ol style="margin:0 0 0.4rem 1.1rem;padding:0;font-size:0.88rem;color:var(--ink-soft);line-height:1.7;">
+            <li>Look in the <strong>address bar</strong> — there's usually a small install icon (a computer screen with a ⊕ or ↓)</li>
+            <li>Click it, then click <strong>"Install"</strong></li>
+            <li>If you don't see it, open the <strong>⋮ menu</strong> → look for <strong>"Install Still Waters..."</strong></li>
+            <li>Toggle <strong>Daily reminder</strong> on below and allow notifications when asked</li>
+          </ol>
+
+          <div style="font-size:0.82rem;color:var(--ink-mid);font-style:italic;margin-top:0.9rem;padding-top:0.8rem;border-top:1px solid var(--sage-light);line-height:1.6;">
+            Reminders work best once installed and kept running in the background rather than fully closed —
+            this is a limitation of browsers in general, not something specific to Still Waters.
+          </div>
         </div>
       </div>
 
@@ -4039,6 +4077,14 @@ function scheduleNotification(){
     scheduleNotification();
   },delay);
 }
+function toggleInstallGuide(){
+  const body  = document.getElementById('install-guide-body');
+  const arrow = document.getElementById('install-guide-arrow');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+}
+
 function cancelNotification(){
   if(_notifTimeoutId){ clearTimeout(_notifTimeoutId); _notifTimeoutId=null; }
   if(swRegistration && swRegistration.active) swRegistration.active.postMessage({ type:'CANCEL_REMINDER' });
