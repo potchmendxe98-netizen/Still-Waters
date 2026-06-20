@@ -1400,8 +1400,8 @@ body.hide-journal .journal-panel-section { display:none !important; }
         </div>
       </div>
 
-      <!-- Site Visitors (collapsed by default) -->
-      <div class="settings-section">
+      <!-- Site Visitors — hidden by default, only revealed in JS for the owner account -->
+      <div class="settings-section" id="site-stats-section" style="display:none;">
         <button id="site-stats-toggle" onclick="toggleSiteStats()"
           style="width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.7rem 1rem;cursor:pointer;transition:all 0.18s;">
           <span style="font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">📊 Site Visitors</span>
@@ -2374,6 +2374,7 @@ function initCloudSync(){
     _cloud.onAuthStateChanged(_cloud.auth, async (user)=>{
       currentUser = user;
       updateAccountUI(user);
+      updateOwnerOnlyUI(user);
       if(user){
         toast('☁ Syncing your practice…');
         await pullFromCloud();
@@ -2387,12 +2388,25 @@ function initCloudSync(){
 }
 
 /* ════════════════════════════════════════════
+   OWNER-ONLY UI
+   Some settings (like site visitor counts) are only
+   meaningful — and only meant — for the app's owner.
+   Gated by exact account email, not just "any signed-in user".
+════════════════════════════════════════════ */
+const OWNER_EMAIL = 'potchmendxe98@gmail.com';
+
+function updateOwnerOnlyUI(user){
+  const isOwner = !!(user && user.email && user.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
+  const section = document.getElementById('site-stats-section');
+  if(section) section.style.display = isOwner ? 'block' : 'none';
+}
+
+/* ════════════════════════════════════════════
    VISITOR ANALYTICS
    Tracks unique devices (anonymous ID stored locally)
    and total visits in a single Firestore doc.
-   Visible to anyone who opens the Settings panel and
-   taps the hidden "Site Visitors" reveal — no login required
-   to view, since this is just aggregate counts, not personal data.
+   The counts themselves are only ever shown in the UI
+   to the owner account — see updateOwnerOnlyUI() above.
 ════════════════════════════════════════════ */
 function getOrCreateVisitorId(){
   let vid = S.get('sw_visitor_id', null);
@@ -3878,6 +3892,8 @@ const WALLPAPERS = {
   night:  'linear-gradient(135deg,#0a0a2a,#1a1a4a)',
 };
 function renderSettings(){
+  // Owner-only sections — re-check on every Settings visit as a safety net
+  updateOwnerOnlyUI(currentUser);
   // Font size
   document.querySelectorAll('.font-size-btn').forEach(btn=>{
     btn.addEventListener('click',()=>setFontSize(btn.dataset.size));
