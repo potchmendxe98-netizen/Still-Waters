@@ -12,7 +12,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB3oKls8Yi1NlpoYYJHS29MwSDizHB1djc",
@@ -33,7 +33,7 @@
     auth: fbAuth, db: fbDb,
     createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
     onAuthStateChanged, sendPasswordResetEmail,
-    doc, setDoc, getDoc, onSnapshot
+    doc, setDoc, getDoc, onSnapshot, increment, serverTimestamp
   };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -1399,6 +1399,18 @@ body.hide-journal .journal-panel-section { display:none !important; }
           <span style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">for every quiet moment</span>
         </div>
       </div>
+
+      <!-- Site Visitors (collapsed by default) -->
+      <div class="settings-section">
+        <button id="site-stats-toggle" onclick="toggleSiteStats()"
+          style="width:100%;display:flex;align-items:center;justify-content:space-between;background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.7rem 1rem;cursor:pointer;transition:all 0.18s;">
+          <span style="font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">📊 Site Visitors</span>
+          <span id="site-stats-arrow" style="color:var(--sage);font-size:0.9rem;transition:transform 0.25s;">›</span>
+        </button>
+        <div id="site-stats-body" style="display:none;margin-top:0.8rem;">
+          <div id="site-stats-content"></div>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -2373,6 +2385,95 @@ function initCloudSync(){
     });
   });
 }
+
+/* ════════════════════════════════════════════
+   VISITOR ANALYTICS
+   Tracks unique devices (anonymous ID stored locally)
+   and total visits in a single Firestore doc.
+   Visible to anyone who opens the Settings panel and
+   taps the hidden "Site Visitors" reveal — no login required
+   to view, since this is just aggregate counts, not personal data.
+════════════════════════════════════════════ */
+function getOrCreateVisitorId(){
+  let vid = S.get('sw_visitor_id', null);
+  if(!vid){
+    vid = 'v_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,10);
+    S.set('sw_visitor_id', vid);
+  }
+  return vid;
+}
+
+async function trackVisit(){
+  whenFirebaseReady(async ()=>{
+    try{
+      const vid = getOrCreateVisitorId();
+      const statsRef = _cloud.doc(_cloud.db, 'analytics', 'site_stats');
+      const visitorRef = _cloud.doc(_cloud.db, 'analytics_visitors', vid);
+
+      // Has this device been seen before? Determines unique vs repeat visit.
+      const visitorSnap = await _cloud.getDoc(visitorRef);
+      const isNewVisitor = !visitorSnap.exists();
+
+      // Record/refresh this visitor's own doc (last seen, visit count)
+      await _cloud.setDoc(visitorRef, {
+        firstSeen: visitorSnap.exists() ? visitorSnap.data().firstSeen : Date.now(),
+        lastSeen: Date.now(),
+        visitCount: _cloud.increment(1),
+      }, { merge: true });
+
+      // Bump the aggregate counters
+      await _cloud.setDoc(statsRef, {
+        totalVisits: _cloud.increment(1),
+        uniqueVisitors: _cloud.increment(isNewVisitor ? 1 : 0),
+        lastVisitAt: Date.now(),
+      }, { merge: true });
+    }catch(e){ console.warn('Visit tracking failed:', e); }
+  });
+}
+
+async function loadSiteStats(){
+  if(!_cloud) return null;
+  try{
+    const statsRef = _cloud.doc(_cloud.db, 'analytics', 'site_stats');
+    const snap = await _cloud.getDoc(statsRef);
+    return snap.exists() ? snap.data() : { totalVisits:0, uniqueVisitors:0 };
+  }catch(e){ return null; }
+}
+
+async function renderSiteStats(){
+  const el = document.getElementById('site-stats-content');
+  if(!el) return;
+  el.innerHTML = '<span style="font-style:italic;color:var(--ink-mid);">Loading…</span>';
+  const stats = await loadSiteStats();
+  if(!stats){
+    el.innerHTML = '<span style="font-style:italic;color:var(--ink-mid);">Unable to load — check your connection.</span>';
+    return;
+  }
+  const lastVisit = stats.lastVisitAt ? new Date(stats.lastVisitAt).toLocaleString() : '—';
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+      <div style="background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.9rem;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:300;color:var(--sage);">${stats.uniqueVisitors||0}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);margin-top:0.2rem;">Unique Visitors</div>
+      </div>
+      <div style="background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.9rem;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:300;color:var(--gold);">${stats.totalVisits||0}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);margin-top:0.2rem;">Total Visits</div>
+      </div>
+    </div>
+    <div style="font-size:0.78rem;color:var(--ink-mid);font-style:italic;margin-top:0.7rem;text-align:center;">Last visit: ${lastVisit}</div>
+  `;
+}
+
+function toggleSiteStats(){
+  const body  = document.getElementById('site-stats-body');
+  const arrow = document.getElementById('site-stats-arrow');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+  if(!isOpen) renderSiteStats();
+}
+
 
 /* ── Auth modal UI ── */
 let authMode = 'signin'; // 'signin' | 'signup'
@@ -4443,6 +4544,7 @@ initAffirmations();
 initCustomEmojiBars();
 initAmbientSound();
 initCloudSync();
+trackVisit();
 registerServiceWorker().then(()=>{
   // If a reminder was already enabled, re-arm it now that the SW is ready
   if(S.get('sw_notif',false) && 'Notification' in window && Notification.permission==='granted') scheduleNotification();
