@@ -4,6 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Still Waters — Mindfulness Planner v3</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB3oKls8Yi1NlpoYYJHS29MwSDizHB1djc",
+    authDomain: "stillwaters-9eddf.firebaseapp.com",
+    projectId: "stillwaters-9eddf",
+    storageBucket: "stillwaters-9eddf.firebasestorage.app",
+    messagingSenderId: "269306920693",
+    appId: "1:269306920693:web:4b06bb7126bbd7ad798fbc",
+    measurementId: "G-DM5H39SYFC"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const fbAuth = getAuth(fbApp);
+  const fbDb = getFirestore(fbApp);
+
+  // Expose to the regular (non-module) app script below
+  window.__firebase = {
+    auth: fbAuth, db: fbDb,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
+    onAuthStateChanged, sendPasswordResetEmail,
+    doc, setDoc, getDoc, onSnapshot
+  };
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjEwMjQiPgogIDxkZWZzPgogICAgPHN0eWxlPgogICAgICBAaW1wb3J0IHVybCgnaHR0cHM6Ly9mb250cy5nb29nbGVhcGlzLmNvbS9jc3MyP2ZhbWlseT1GcmVkb2thOndnaHRANTAwOzYwMCZhbXA7ZGlzcGxheT1zd2FwJyk7CiAgICAgIC53b3JkbWFyayB7IGZvbnQtZmFtaWx5OiAnRnJlZG9rYScsICdWYXJlbGEgUm91bmQnLCAnUXVpY2tzYW5kJywgc3lzdGVtLXVpLCBzYW5zLXNlcmlmOyB9CiAgICA8L3N0eWxlPgoKICAgIDwhLS0gc3VidGxlIHZpbnRhZ2UgZ3JhaW4gLS0+CiAgICA8ZmlsdGVyIGlkPSJncmFpbiIgeD0iLTUlIiB5PSItNSUiIHdpZHRoPSIxMTAlIiBoZWlnaHQ9IjExMCUiPgogICAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC45IiBudW1PY3RhdmVzPSIyIiBzZWVkPSI3IiByZXN1bHQ9Im5vaXNlIi8+CiAgICAgIDxmZUNvbG9yTWF0cml4IGluPSJub2lzZSIgdHlwZT0ibWF0cml4IgogICAgICAgIHZhbHVlcz0iMCAwIDAgMCAwICAwIDAgMCAwIDAgIDAgMCAwIDAgMCAgMCAwIDAgMC41IDAiIHJlc3VsdD0iZ3JhaW5BbHBoYSIvPgogICAgICA8ZmVDb21wb3NpdGUgaW49ImdyYWluQWxwaGEiIGluMj0iU291cmNlR3JhcGhpYyIgb3BlcmF0b3I9ImluIiByZXN1bHQ9ImdyYWluQ2xpcHBlZCIvPgogICAgICA8ZmVCbGVuZCBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJncmFpbkNsaXBwZWQiIG1vZGU9Im11bHRpcGx5Ii8+CiAgICA8L2ZpbHRlcj4KCiAgICA8IS0tIGFyY2ggc2hhcGVzIC0tPgogICAgPHBhdGggaWQ9ImFyY2hPdXRlciIgIGQ9Ik0gMjMyIDcxMiBMIDIzMiAzMzggUSAyMzIgMTMyIDUxMiAxMzIgUSA3OTIgMTMyIDc5MiAzMzggTCA3OTIgNzEyIFoiLz4KICAgIDxwYXRoIGlkPSJhcmNoVGVhbCIgICBkPSJNIDI2MiA2OTAgTCAyNjIgMzQ0IFEgMjYyIDE2MiA1MTIgMTYyIFEgNzYyIDE2MiA3NjIgMzQ0IEwgNzYyIDY5MCBaIi8+CiAgICA8cGF0aCBpZD0iYXJjaFNreSIgICAgZD0iTSAyNzQgNjc4IEwgMjc0IDM0OCBRIDI3NCAxNzQgNTEyIDE3NCBRIDc1MCAxNzQgNzUwIDM0OCBMIDc1MCA2NzggWiIvPgoKICAgIDxjbGlwUGF0aCBpZD0ic2t5Q2xpcCI+PHVzZSBocmVmPSIjYXJjaFNreSIvPjwvY2xpcFBhdGg+CiAgPC9kZWZzPgoKICA8IS0tIGJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCIgZmlsbD0iIzJmNTc1MiIvPgoKICA8ZyBmaWx0ZXI9InVybCgjZ3JhaW4pIj4KICAgIDwhLS0gZ29sZCBvdXRlciBib3JkZXIgLS0+CiAgICA8dXNlIGhyZWY9IiNhcmNoT3V0ZXIiIGZpbGw9IiNlNmM4NjkiLz4KICAgIDwhLS0gZGFyayB0ZWFsIHJpbmcgLS0+CiAgICA8dXNlIGhyZWY9IiNhcmNoVGVhbCIgZmlsbD0iIzFkM2MzOSIvPgogICAgPCEtLSBsaWdodCB0ZWFsIHNreS93YXRlciBmaWVsZCAtLT4KICAgIDx1c2UgaHJlZj0iI2FyY2hTa3kiIGZpbGw9IiM3ZmI1YjkiLz4KCiAgICA8IS0tIGlubmVyIHNjZW5lLCBjbGlwcGVkIHRvIHRoZSBza3kgZmllbGQgLS0+CiAgICA8ZyBjbGlwLXBhdGg9InVybCgjc2t5Q2xpcCkiPgogICAgICA8IS0tIGhvcml6b24gbGluZSAtLT4KICAgICAgPGxpbmUgeDE9IjI3NCIgeTE9IjM0OCIgeDI9Ijc1MCIgeTI9IjM0OCIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjEzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgICAgIDwhLS0gaGFsZiBzdW4gb24gdGhlIGhvcml6b24gLS0+CiAgICAgIDxwYXRoIGQ9Ik0gNDQ2IDM0OCBBIDY2IDY2IDAgMCAxIDU3OCAzNDggWiIgZmlsbD0iI2U2Yzg2OSIvPgogICAgICA8cGF0aCBkPSJNIDQ0NiAzNDggQSA2NiA2NiAwIDAgMSA1NzggMzQ4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxZDNjMzkiIHN0cm9rZS13aWR0aD0iMTMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgoKICAgICAgPCEtLSB3aW5kaW5nIHJpdmVyOiB0d28gbWVhbmRlcmluZyBiYW5rcyBmb3JtaW5nIGFuIFMgLS0+CiAgICAgIDxwYXRoIGQ9Ik0gNDcwIDM0OAogICAgICAgICAgICAgICBDIDQzMCA0MTAsIDU0MCA0MzAsIDUwMCA1MDAKICAgICAgICAgICAgICAgQyA0NzAgNTU4LCA1NjAgNTg4LCA1NDAgNjc4IgogICAgICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiMxZDNjMzkiIHN0cm9rZS13aWR0aD0iMTUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDU1OCAzNDgKICAgICAgICAgICAgICAgQyA2MDAgNDA4LCA1MjAgNDQ2LCA1NjYgNTEyCiAgICAgICAgICAgICAgIEMgNjA2IDU2OCwgNTQwIDYxMiwgNTg4IDY3OCIKICAgICAgICAgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjE1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgICAgIDwhLS0gcmlwcGxlIG1hcmtzOiBsZWZ0IHNpZGUgLS0+CiAgICAgIDxwYXRoIGQ9Ik0gMzMwIDM5MiBxIDI2IC0xMCA1MiAwIiAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkM2MzOSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMzAwIDQ3MCBxIDMwIC0xMCA2MCAwIiAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkM2MzOSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMzE4IDU2MCBxIDM0IC0xMSA2OCAwIiAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkM2MzOSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMzQ4IDYyNCBxIDI0IC05IDQ4IDAiICAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkM2MzOSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CgogICAgICA8IS0tIHJpcHBsZSBtYXJrczogcmlnaHQgc2lkZSAtLT4KICAgICAgPHBhdGggZD0iTSA2MTIgMzg4IHEgMzAgLTEwIDYwIDAiICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA2NDggNDcwIHEgMjggLTEwIDU2IDAiICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA2MzYgNTY2IHEgMzAgLTEwIDYwIDAiICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA2NjAgNjMyIHEgMjIgLTggNDQgMCIgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDwvZz4KCiAgICA8IS0tIHdvcmRtYXJrIC0tPgogICAgPHRleHQgeD0iNTEyIiB5PSI4NjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJ3b3JkbWFyayIKICAgICAgICAgIGZvbnQtc2l6ZT0iMTcyIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZTZjODY5IiBsZXR0ZXItc3BhY2luZz0iLTIiPlN0aWxsV2F0ZXJzPC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
 <style>
 /* ═══ THEME VARIABLES ══════════════════════════ */
@@ -598,6 +627,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
+      <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDI0IDEwMjQiIHdpZHRoPSIxMDI0IiBoZWlnaHQ9IjEwMjQiPgogIDxkZWZzPgogICAgPHN0eWxlPgogICAgICBAaW1wb3J0IHVybCgnaHR0cHM6Ly9mb250cy5nb29nbGVhcGlzLmNvbS9jc3MyP2ZhbWlseT1GcmVkb2thOndnaHRANTAwOzYwMCZhbXA7ZGlzcGxheT1zd2FwJyk7CiAgICAgIC53b3JkbWFyayB7IGZvbnQtZmFtaWx5OiAnRnJlZG9rYScsICdWYXJlbGEgUm91bmQnLCAnUXVpY2tzYW5kJywgc3lzdGVtLXVpLCBzYW5zLXNlcmlmOyB9CiAgICA8L3N0eWxlPgoKICAgIDwhLS0gc3VidGxlIHZpbnRhZ2UgZ3JhaW4gLS0+CiAgICA8ZmlsdGVyIGlkPSJncmFpbiIgeD0iLTUlIiB5PSItNSUiIHdpZHRoPSIxMTAlIiBoZWlnaHQ9IjExMCUiPgogICAgICA8ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC45IiBudW1PY3RhdmVzPSIyIiBzZWVkPSI3IiByZXN1bHQ9Im5vaXNlIi8+CiAgICAgIDxmZUNvbG9yTWF0cml4IGluPSJub2lzZSIgdHlwZT0ibWF0cml4IgogICAgICAgIHZhbHVlcz0iMCAwIDAgMCAwICAwIDAgMCAwIDAgIDAgMCAwIDAgMCAgMCAwIDAgMC41IDAiIHJlc3VsdD0iZ3JhaW5BbHBoYSIvPgogICAgICA8ZmVDb21wb3NpdGUgaW49ImdyYWluQWxwaGEiIGluMj0iU291cmNlR3JhcGhpYyIgb3BlcmF0b3I9ImluIiByZXN1bHQ9ImdyYWluQ2xpcHBlZCIvPgogICAgICA8ZmVCbGVuZCBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJncmFpbkNsaXBwZWQiIG1vZGU9Im11bHRpcGx5Ii8+CiAgICA8L2ZpbHRlcj4KCiAgICA8IS0tIGFyY2ggc2hhcGVzIC0tPgogICAgPHBhdGggaWQ9ImFyY2hPdXRlciIgIGQ9Ik0gMjMyIDcxMiBMIDIzMiAzMzggUSAyMzIgMTMyIDUxMiAxMzIgUSA3OTIgMTMyIDc5MiAzMzggTCA3OTIgNzEyIFoiLz4KICAgIDxwYXRoIGlkPSJhcmNoVGVhbCIgICBkPSJNIDI2MiA2OTAgTCAyNjIgMzQ0IFEgMjYyIDE2MiA1MTIgMTYyIFEgNzYyIDE2MiA3NjIgMzQ0IEwgNzYyIDY5MCBaIi8+CiAgICA8cGF0aCBpZD0iYXJjaFNreSIgICAgZD0iTSAyNzQgNjc4IEwgMjc0IDM0OCBRIDI3NCAxNzQgNTEyIDE3NCBRIDc1MCAxNzQgNzUwIDM0OCBMIDc1MCA2NzggWiIvPgoKICAgIDxjbGlwUGF0aCBpZD0ic2t5Q2xpcCI+PHVzZSBocmVmPSIjYXJjaFNreSIvPjwvY2xpcFBhdGg+CiAgPC9kZWZzPgoKICA8IS0tIGJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjEwMjQiIGhlaWdodD0iMTAyNCIgZmlsbD0iIzJmNTc1MiIvPgoKICA8ZyBmaWx0ZXI9InVybCgjZ3JhaW4pIj4KICAgIDwhLS0gZ29sZCBvdXRlciBib3JkZXIgLS0+CiAgICA8dXNlIGhyZWY9IiNhcmNoT3V0ZXIiIGZpbGw9IiNlNmM4NjkiLz4KICAgIDwhLS0gZGFyayB0ZWFsIHJpbmcgLS0+CiAgICA8dXNlIGhyZWY9IiNhcmNoVGVhbCIgZmlsbD0iIzFkM2MzOSIvPgogICAgPCEtLSBsaWdodCB0ZWFsIHNreS93YXRlciBmaWVsZCAtLT4KICAgIDx1c2UgaHJlZj0iI2FyY2hTa3kiIGZpbGw9IiM3ZmI1YjkiLz4KCiAgICA8IS0tIGlubmVyIHNjZW5lLCBjbGlwcGVkIHRvIHRoZSBza3kgZmllbGQgLS0+CiAgICA8ZyBjbGlwLXBhdGg9InVybCgjc2t5Q2xpcCkiPgogICAgICA8IS0tIGhvcml6b24gbGluZSAtLT4KICAgICAgPGxpbmUgeDE9IjI3NCIgeTE9IjM0OCIgeDI9Ijc1MCIgeTI9IjM0OCIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjEzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgICAgIDwhLS0gaGFsZiBzdW4gb24gdGhlIGhvcml6b24gLS0+CiAgICAgIDxwYXRoIGQ9Ik0gNDQ2IDM0OCBBIDY2IDY2IDAgMCAxIDU3OCAzNDggWiIgZmlsbD0iI2U2Yzg2OSIvPgogICAgICA8cGF0aCBkPSJNIDQ0NiAzNDggQSA2NiA2NiAwIDAgMSA1NzggMzQ4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxZDNjMzkiIHN0cm9rZS13aWR0aD0iMTMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgoKICAgICAgPCEtLSB3aW5kaW5nIHJpdmVyOiB0d28gbWVhbmRlcmluZyBiYW5rcyBmb3JtaW5nIGFuIFMgLS0+CiAgICAgIDxwYXRoIGQ9Ik0gNDcwIDM0OAogICAgICAgICAgICAgICBDIDQzMCA0MTAsIDU0MCA0MzAsIDUwMCA1MDAKICAgICAgICAgICAgICAgQyA0NzAgNTU4LCA1NjAgNTg4LCA1NDAgNjc4IgogICAgICAgICAgICBmaWxsPSJub25lIiBzdHJva2U9IiMxZDNjMzkiIHN0cm9rZS13aWR0aD0iMTUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgICA8cGF0aCBkPSJNIDU1OCAzNDgKICAgICAgICAgICAgICAgQyA2MDAgNDA4LCA1MjAgNDQ2LCA1NjYgNTEyCiAgICAgICAgICAgICAgIEMgNjA2IDU2OCwgNTQwIDYxMiwgNTg4IDY3OCIKICAgICAgICAgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjE1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KCiAgICAgIDwhLS0gcmlwcGxlIG1hcmtzOiBsZWZ0IHNpZGUgLS0+CiAgICAgIDxwYXRoIGQ9Ik0gMzMwIDM5MiBxIDI2IC0xMCA1MiAwIiAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkM2MzOSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMzAwIDQ3MCBxIDMwIC0xMCA2MCAwIiAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkM2MzOSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMzE4IDU2MCBxIDM0IC0xMSA2OCAwIiAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkM2MzOSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgICAgIDxwYXRoIGQ9Ik0gMzQ4IDYyNCBxIDI0IC05IDQ4IDAiICAgIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzFkM2MzOSIgc3Ryb2tlLXdpZHRoPSIxMSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CgogICAgICA8IS0tIHJpcHBsZSBtYXJrczogcmlnaHQgc2lkZSAtLT4KICAgICAgPHBhdGggZD0iTSA2MTIgMzg4IHEgMzAgLTEwIDYwIDAiICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA2NDggNDcwIHEgMjggLTEwIDU2IDAiICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA2MzYgNTY2IHEgMzAgLTEwIDYwIDAiICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgICAgPHBhdGggZD0iTSA2NjAgNjMyIHEgMjIgLTggNDQgMCIgICAgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWQzYzM5IiBzdHJva2Utd2lkdGg9IjExIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDwvZz4KCiAgICA8IS0tIHdvcmRtYXJrIC0tPgogICAgPHRleHQgeD0iNTEyIiB5PSI4NjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGNsYXNzPSJ3b3JkbWFyayIKICAgICAgICAgIGZvbnQtc2l6ZT0iMTcyIiBmb250LXdlaWdodD0iNjAwIiBmaWxsPSIjZTZjODY5IiBsZXR0ZXItc3BhY2luZz0iLTIiPlN0aWxsV2F0ZXJzPC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==" alt="Still Waters" style="width:72px;height:72px;display:block;margin-bottom:0.7rem;object-fit:contain;border-radius:14px;box-shadow:0 2px 8px rgba(26,20,16,0.12);"/>
       <div class="eyebrow" data-i18n="planner">Mindfulness Planner</div>
       <h1>Still <em>Waters</em></h1>
       <div class="tagline" data-i18n="tagline">a daily practice</div>
@@ -611,6 +641,20 @@ body.hide-journal .journal-panel-section { display:none !important; }
       <div class="nav-item" data-panel="settings"><span class="nav-icon">⚙</span><span data-i18n="nav_settings">Settings</span></div>
     </nav>
     <div class="sidebar-footer">
+      <div id="account-widget" style="margin-bottom:0.7rem;">
+        <button id="account-signedout-btn" onclick="openAuthModal()"
+          style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.4rem;background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.55rem;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-mid);transition:all 0.18s;">
+          ☁ Sign in to sync
+        </button>
+        <div id="account-signedin-row" style="display:none;align-items:center;justify-content:space-between;gap:0.5rem;background:var(--sage-pale);border:1px solid var(--sage-light);border-radius:var(--radius);padding:0.5rem 0.7rem;">
+          <div style="overflow:hidden;">
+            <div style="font-family:'DM Mono',monospace;font-size:0.46rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage);">Synced ✦</div>
+            <div id="account-email-label" style="font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;">—</div>
+          </div>
+          <button onclick="signOutOfStillWaters()" title="Sign out"
+            style="background:none;border:none;cursor:pointer;color:var(--ink-mid);font-size:0.85rem;flex-shrink:0;">⏻</button>
+        </div>
+      </div>
       <div class="streak-badge">
         <div class="streak-num" id="sidebar-streak">0</div>
         <div class="streak-label" data-i18n="day_streak">day streak</div>
@@ -1313,6 +1357,55 @@ body.hide-journal .journal-panel-section { display:none !important; }
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- ACCOUNT / SYNC MODAL -->
+<div id="auth-overlay" style="display:none;position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.72);align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--parchment-deep);border:1px solid var(--mist);border-radius:8px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.4);">
+    <div style="padding:1.4rem 1.6rem 1rem;border-bottom:1px solid var(--mist);display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--sage);">☁ Sync Your Practice</div>
+        <div style="font-size:1rem;font-weight:300;margin-top:0.2rem;color:var(--ink-soft);font-style:italic;" id="auth-modal-subtitle">Sign in to access your data anywhere</div>
+      </div>
+      <button onclick="closeAuthModal()" style="background:none;border:none;cursor:pointer;color:var(--ink-mid);font-size:1.1rem;line-height:1;">✕</button>
+    </div>
+
+    <div style="padding:1.4rem 1.6rem;">
+      <!-- Tab switcher: Sign In / Sign Up -->
+      <div style="display:flex;gap:0;margin-bottom:1.2rem;border-bottom:1px solid var(--mist);">
+        <button id="auth-tab-signin" onclick="switchAuthTab('signin')"
+          style="flex:1;padding:0.5rem;background:none;border:none;border-bottom:2px solid var(--sage);cursor:pointer;font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--sage);">Sign In</button>
+        <button id="auth-tab-signup" onclick="switchAuthTab('signup')"
+          style="flex:1;padding:0.5rem;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">Create Account</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.9rem;">
+        <div class="ef">
+          <label style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">Email</label>
+          <input type="email" id="auth-email" placeholder="you@example.com"
+            style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--mist);padding:0.4rem 0;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--ink);outline:none;"/>
+        </div>
+        <div class="ef">
+          <label style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">Password</label>
+          <input type="password" id="auth-password" placeholder="At least 6 characters"
+            style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--mist);padding:0.4rem 0;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--ink);outline:none;"/>
+        </div>
+
+        <div id="auth-error" style="display:none;color:var(--clay);font-size:0.85rem;font-style:italic;"></div>
+
+        <button id="auth-submit-btn" onclick="submitAuth()" class="btn btn-sage" style="width:100%;padding:0.65rem;">Sign In ✦</button>
+
+        <button id="auth-forgot-btn" onclick="sendPasswordReset()"
+          style="background:none;border:none;cursor:pointer;color:var(--ink-mid);font-size:0.78rem;font-style:italic;text-decoration:underline;text-align:center;">
+          Forgot your password?
+        </button>
+
+        <div style="font-size:0.8rem;color:var(--ink-soft);font-style:italic;line-height:1.5;border-top:1px solid var(--mist);padding-top:0.8rem;margin-top:0.2rem;">
+          Signing in keeps your journal, tracker and settings synced across every device you use. Your data stays private — only you can access it.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- IMAGE ADJUSTER MODAL -->
 <div id="img-adjuster-overlay" style="display:none;position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;padding:1rem;">
@@ -2117,6 +2210,218 @@ const S = {
   set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
+
+/* ════════════════════════════════════════════
+   CLOUD SYNC — Firebase Auth + Firestore
+════════════════════════════════════════════ */
+let _cloud = null;            // window.__firebase, once loaded
+let currentUser = null;   // signed-in Firebase user
+let syncInFlight = false;
+let suppressNextLocalPush = false; // avoid pushing right after a pull
+
+function whenFirebaseReady(cb){
+  if(window.__firebase){ _cloud = window.__firebase; cb(); }
+  else window.addEventListener('firebase-ready', ()=>{ _cloud = window.__firebase; cb(); }, {once:true});
+}
+
+// All localStorage keys that belong to Still Waters (everything is prefixed sw_)
+function collectAllSwData(){
+  const data = {};
+  for(let i=0;i<localStorage.length;i++){
+    const key = localStorage.key(i);
+    if(key && key.startsWith('sw_')){
+      try{ data[key] = JSON.parse(localStorage.getItem(key)); }
+      catch(e){ data[key] = localStorage.getItem(key); }
+    }
+  }
+  return data;
+}
+
+function applyAllSwData(data){
+  if(!data) return;
+  suppressNextLocalPush = true;
+  Object.keys(data).forEach(key=>{
+    try{ localStorage.setItem(key, JSON.stringify(data[key])); }catch(e){}
+  });
+  setTimeout(()=>{ suppressNextLocalPush = false; }, 800);
+}
+
+async function pushToCloud(){
+  if(!currentUser || !_cloud || syncInFlight) return;
+  syncInFlight = true;
+  try{
+    const data = collectAllSwData();
+    const ref = _cloud.doc(_cloud.db, 'users', currentUser.uid);
+    await _cloud.setDoc(ref, { data, updatedAt: Date.now() }, { merge: true });
+  }catch(e){ console.warn('Sync push failed:', e); }
+  syncInFlight = false;
+}
+
+// Debounced push — avoid hammering Firestore on every keystroke
+let _pushTimer = null;
+function scheduleCloudPush(){
+  if(!currentUser || suppressNextLocalPush) return;
+  clearTimeout(_pushTimer);
+  _pushTimer = setTimeout(pushToCloud, 1500);
+}
+
+async function pullFromCloud(){
+  if(!currentUser || !_cloud) return;
+  try{
+    const ref = _cloud.doc(_cloud.db, 'users', currentUser.uid);
+    const snap = await _cloud.getDoc(ref);
+    if(snap.exists()){
+      applyAllSwData(snap.data().data);
+      return true;
+    }
+  }catch(e){ console.warn('Sync pull failed:', e); }
+  return false;
+}
+
+function refreshAppAfterSync(){
+  // Re-render everything that depends on stored data
+  loadSavedSettings();
+  applyI18n();
+  initToday();
+  renderTracker();
+  if(document.getElementById('panel-journal')?.classList.contains('active')) renderJournal();
+  if(document.getElementById('panel-insights')?.classList.contains('active')) renderInsights();
+  if(document.getElementById('panel-widgets')?.classList.contains('active')) renderWidgets();
+  updateStreakBadge();
+}
+
+// Watch every localStorage write made via S.set, and queue a cloud push.
+// We wrap S.set so every existing call site benefits without changes elsewhere.
+const _originalSSet = S.set;
+S.set = function(k,v){ _originalSSet(k,v); if(k.startsWith('sw_')) scheduleCloudPush(); };
+
+function updateAccountUI(user){
+  const signedOutBtn = document.getElementById('account-signedout-btn');
+  const signedInRow  = document.getElementById('account-signedin-row');
+  const emailLabel   = document.getElementById('account-email-label');
+  if(user){
+    if(signedOutBtn) signedOutBtn.style.display = 'none';
+    if(signedInRow)  signedInRow.style.display = 'flex';
+    if(emailLabel)   emailLabel.textContent = user.email;
+  } else {
+    if(signedOutBtn) signedOutBtn.style.display = 'flex';
+    if(signedInRow)  signedInRow.style.display = 'none';
+  }
+}
+
+function initCloudSync(){
+  whenFirebaseReady(()=>{
+    _cloud.onAuthStateChanged(_cloud.auth, async (user)=>{
+      currentUser = user;
+      updateAccountUI(user);
+      if(user){
+        toast('☁ Syncing your practice…');
+        await pullFromCloud();
+        refreshAppAfterSync();
+        toast('✦ Synced — ' + user.email);
+        // Push once immediately in case this device has newer local data
+        pushToCloud();
+      }
+    });
+  });
+}
+
+/* ── Auth modal UI ── */
+let authMode = 'signin'; // 'signin' | 'signup'
+
+function openAuthModal(){
+  document.getElementById('auth-overlay').style.display = 'flex';
+  switchAuthTab('signin');
+  document.getElementById('auth-error').style.display = 'none';
+}
+function closeAuthModal(){
+  document.getElementById('auth-overlay').style.display = 'none';
+}
+function switchAuthTab(mode){
+  authMode = mode;
+  const signinTab = document.getElementById('auth-tab-signin');
+  const signupTab = document.getElementById('auth-tab-signup');
+  const submitBtn = document.getElementById('auth-submit-btn');
+  const forgotBtn = document.getElementById('auth-forgot-btn');
+  const subtitle  = document.getElementById('auth-modal-subtitle');
+  if(mode === 'signin'){
+    signinTab.style.borderBottomColor = 'var(--sage)'; signinTab.style.color = 'var(--sage)';
+    signupTab.style.borderBottomColor = 'transparent'; signupTab.style.color = 'var(--ink-mid)';
+    submitBtn.textContent = 'Sign In ✦';
+    forgotBtn.style.display = 'block';
+    subtitle.textContent = 'Sign in to access your data anywhere';
+  } else {
+    signupTab.style.borderBottomColor = 'var(--sage)'; signupTab.style.color = 'var(--sage)';
+    signinTab.style.borderBottomColor = 'transparent'; signinTab.style.color = 'var(--ink-mid)';
+    submitBtn.textContent = 'Create Account ✦';
+    forgotBtn.style.display = 'none';
+    subtitle.textContent = 'Create an account to sync across devices';
+  }
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function showAuthError(msg){
+  const el = document.getElementById('auth-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function friendlyAuthError(code){
+  const map = {
+    'auth/invalid-email': 'Please enter a valid email address.',
+    'auth/missing-password': 'Please enter a password.',
+    'auth/weak-password': 'Password should be at least 6 characters.',
+    'auth/email-already-in-use': 'An account already exists with this email. Try signing in instead.',
+    'auth/invalid-credential': 'Incorrect email or password.',
+    'auth/wrong-password': 'Incorrect email or password.',
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
+    'auth/network-request-failed': 'Network error. Check your connection and try again.',
+  };
+  return map[code] || 'Something went wrong. Please try again.';
+}
+
+async function submitAuth(){
+  if(!_cloud){ showAuthError('Still loading — please try again in a moment.'); return; }
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if(!email || !password){ showAuthError('Please fill in both fields.'); return; }
+
+  const btn = document.getElementById('auth-submit-btn');
+  btn.textContent = '...'; btn.disabled = true;
+
+  try{
+    if(authMode === 'signin'){
+      await _cloud.signInWithEmailAndPassword(_cloud.auth, email, password);
+    } else {
+      await _cloud.createUserWithEmailAndPassword(_cloud.auth, email, password);
+    }
+    closeAuthModal();
+    document.getElementById('auth-email').value = '';
+    document.getElementById('auth-password').value = '';
+  }catch(e){
+    showAuthError(friendlyAuthError(e.code));
+  }
+  btn.disabled = false;
+  btn.textContent = authMode === 'signin' ? 'Sign In ✦' : 'Create Account ✦';
+}
+
+async function sendPasswordReset(){
+  const email = document.getElementById('auth-email').value.trim();
+  if(!email){ showAuthError('Enter your email above first, then tap "Forgot password?"'); return; }
+  try{
+    await _cloud.sendPasswordResetEmail(_cloud.auth, email);
+    toast('✦ Password reset email sent');
+  }catch(e){
+    showAuthError(friendlyAuthError(e.code));
+  }
+}
+
+async function signOutOfStillWaters(){
+  if(!_cloud) return;
+  await _cloud.signOut(_cloud.auth);
+  toast('Signed out — your data stays on this device');
+}
+
 const tKey  = (y,m) => `sw_t_${y}_${String(m).padStart(2,'0')}`;
 const jKey  = d    => `sw_j_${d}`;
 const jlKey = (y,m)=> `sw_jl_${y}_${String(m).padStart(2,'0')}`;
@@ -4016,6 +4321,7 @@ initWidgets();
 initAffirmations();
 initCustomEmojiBars();
 initAmbientSound();
+initCloudSync();
 </script>
 </body>
 </html>
