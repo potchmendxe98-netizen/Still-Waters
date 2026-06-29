@@ -11,8 +11,8 @@
 <meta name="apple-mobile-web-app-title" content="Still Waters">
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, onSnapshot, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot, increment, serverTimestamp, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB3oKls8Yi1NlpoYYJHS29MwSDizHB1djc",
@@ -32,8 +32,8 @@
   window.__firebase = {
     auth: fbAuth, db: fbDb,
     createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
-    onAuthStateChanged, sendPasswordResetEmail,
-    doc, setDoc, getDoc, onSnapshot, increment, serverTimestamp
+    onAuthStateChanged, sendPasswordResetEmail, updateProfile,
+    doc, setDoc, getDoc, onSnapshot, increment, serverTimestamp, collection, getDocs
   };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -450,6 +450,7 @@ body::before {
 .widget-title { font-family:'DM Mono',monospace; font-size:0.55rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-mid); flex:1; padding:0 0.5rem; }
 .widget-del { background:none; border:none; cursor:pointer; color:var(--mist); font-size:0.9rem; transition:color 0.15s; padding:0; }
 .widget-del:hover { color:var(--clay); }
+.widget-export:hover { color:var(--sage); }
 .widget-body { font-size:1rem; line-height:1.65; color:var(--ink-soft); font-style:italic; }
 .widget-body.large { font-size:1.3rem; font-weight:300; color:var(--ink); font-style:normal; text-align:center; padding:0.5rem 0; }
 .widget-streak-num { font-size:3rem; font-weight:300; color:var(--sage); line-height:1; text-align:center; }
@@ -563,7 +564,8 @@ body.hide-journal .journal-panel-section { display:none !important; }
   .sidebar-nav { display:flex; padding:0.5rem; flex-direction:row; overflow-x:auto; }
   .nav-item { white-space:nowrap; border-left:none; border-bottom:2px solid transparent; padding:0.6rem 1rem; }
   .nav-item.active { border-left-color:transparent; border-bottom-color:var(--sage); }
-  .sidebar-footer { display:none; }
+  .sidebar-footer { display:block; padding:0.7rem 1rem; }
+  .sidebar-footer .streak-badge { display:none; }
   .main { padding:1.5rem 1rem 3rem; }
   .habits-grid { grid-template-columns:repeat(3,1fr); }
   .insights-grid, .week-meta, .entry-row { grid-template-columns:1fr; }
@@ -675,6 +677,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
     <div class="panel active" id="panel-today">
       <div class="page-header">
         <div class="page-label" data-i18n="daily_practice">Daily Practice</div>
+        <div id="welcome-greeting" style="display:none;font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--sage);margin-bottom:0.3rem;"></div>
         <h2 id="today-date-heading">Today</h2>
         <p data-i18n="today_sub">A moment just for you. There is no right way to begin.</p>
       </div>
@@ -1173,6 +1176,9 @@ body.hide-journal .journal-panel-section { display:none !important; }
 
       <!-- Widget Grid -->
       <div class="sec-div"><span class="sec-line"></span><span class="sec-label" data-i18n="your_widgets">Pinned Widgets</span><span class="sec-line"></span></div>
+      <div style="background:var(--sage-pale);border:1px solid var(--sage-light);border-radius:var(--radius);padding:0.8rem 1.1rem;margin-bottom:1rem;font-size:0.82rem;color:var(--ink-soft);font-style:italic;line-height:1.6;">
+        Tap the <strong>⬇</strong> on any widget to save it as an image — perfect for using as your phone's lock screen, or for setting as the icon when adding a shortcut to your home screen.
+      </div>
       <div id="widget-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;"></div>
       <div id="widget-empty" style="text-align:center;padding:3rem 1rem;color:var(--ink-mid);font-style:italic;">
         <div style="font-size:2rem;margin-bottom:0.8rem;">❋</div>
@@ -1186,6 +1192,22 @@ body.hide-journal .journal-panel-section { display:none !important; }
         <div class="page-label" data-i18n="nav_settings">Settings</div>
         <h2 data-i18n="customise">Customise Your Space</h2>
         <p data-i18n="settings_sub">Make Still Waters truly yours.</p>
+      </div>
+
+      <!-- Your Name -->
+      <div class="settings-section">
+        <h3>✦ <span data-i18n="your_name">Your Name</span></h3>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:0.6rem;">
+          <div class="setting-sub" data-i18n="your_name_sub">How should Still Waters greet you?</div>
+          <div style="display:flex;gap:0.6rem;width:100%;">
+            <input type="text" id="display-name-input" placeholder="Your name" maxlength="30"
+              style="flex:1;background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.5rem 0.8rem;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--ink);outline:none;"/>
+            <button class="btn btn-sage" onclick="saveDisplayName()" data-i18n="save">Save ✦</button>
+          </div>
+          <div id="display-name-hint" style="font-size:0.8rem;color:var(--ink-mid);font-style:italic;display:none;">
+            Sign in to sync your name across devices — otherwise it's saved just on this one.
+          </div>
+        </div>
       </div>
 
       <!-- Appearance -->
@@ -1381,22 +1403,22 @@ body.hide-journal .journal-panel-section { display:none !important; }
           <div style="font-size:1.8rem;">🌿</div>
           <div>
             <div style="font-size:1.25rem;font-weight:300;letter-spacing:-0.01em;">Still <em style="font-style:italic;color:var(--sage);">Waters</em></div>
-            <div style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-mid);margin-top:0.15rem;">Mindfulness Planner</div>
+            <div style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--ink-mid);margin-top:0.15rem;" data-i18n="planner">Mindfulness Planner</div>
           </div>
         </div>
-        <p style="font-size:1rem;line-height:1.8;color:var(--ink-soft);font-style:italic;margin-bottom:1.2rem;border-left:2px solid var(--sage-light);padding-left:1rem;">
+        <p style="font-size:1rem;line-height:1.8;color:var(--ink-soft);font-style:italic;margin-bottom:1.2rem;border-left:2px solid var(--sage-light);padding-left:1rem;" data-i18n="about_text">
           Still Waters was born from a simple belief: that the most profound transformation begins not with grand gestures, but in the quiet moments you carve out for yourself each day. We created a space that feels as personal and unhurried as a handwritten letter — somewhere your thoughts can settle, your habits can take root, and your inner life can be tended with the same care you give to everything else.
         </p>
         <div style="background:var(--parchment-deep);border-radius:var(--radius);padding:1.1rem 1.4rem;border:1px solid var(--sage-light);">
-          <div style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--sage);margin-bottom:0.6rem;">Our Mission</div>
-          <p style="font-size:0.98rem;line-height:1.75;color:var(--ink-soft);">
+          <div style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--sage);margin-bottom:0.6rem;" data-i18n="our_mission">Our Mission</div>
+          <p style="font-size:0.98rem;line-height:1.75;color:var(--ink-soft);" data-i18n="mission_text">
             To make mindfulness feel accessible, personal, and genuinely yours — not a rigid routine to perform, but a living practice that grows with you. We believe everyone deserves a space to pause, reflect, and return to themselves, no matter how full their day. Still Waters is that space: private, gentle, and always here when you need it.
           </p>
         </div>
         <div style="margin-top:1rem;display:flex;align-items:center;gap:0.5rem;">
-          <span style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">Made with</span>
+          <span style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);" data-i18n="made_with">Made with</span>
           <span style="color:var(--clay);">♥</span>
-          <span style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">for every quiet moment</span>
+          <span style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);" data-i18n="for_every_moment">for every quiet moment</span>
         </div>
       </div>
 
@@ -1409,6 +1431,8 @@ body.hide-journal .journal-panel-section { display:none !important; }
         </button>
         <div id="site-stats-body" style="display:none;margin-top:0.8rem;">
           <div id="site-stats-content"></div>
+          <div class="sec-div" style="margin-top:1.2rem;"><span class="sec-line"></span><span class="sec-label">Registered Accounts</span><span class="sec-line"></span></div>
+          <div id="active-users-content"></div>
         </div>
       </div>
     </div>
@@ -1439,6 +1463,11 @@ body.hide-journal .journal-panel-section { display:none !important; }
       </div>
 
       <div style="display:flex;flex-direction:column;gap:0.9rem;">
+        <div class="ef" id="auth-name-field" style="display:none;">
+          <label style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">Your Name</label>
+          <input type="text" id="auth-name" placeholder="What should we call you?"
+            style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--mist);padding:0.4rem 0;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--ink);outline:none;"/>
+        </div>
         <div class="ef">
           <label style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--ink-mid);">Email</label>
           <input type="email" id="auth-email" placeholder="you@example.com"
@@ -1575,6 +1604,7 @@ const STRINGS = {
     overview:'Overview', total_sessions:'Total\nSessions', journal_entries:'Journal\nEntries',
     current_streak:'Current\nStreak',
     customise:'Customise Your Space', settings_sub:'Make Still Waters truly yours.',
+    your_name:'Your Name', your_name_sub:'How should Still Waters greet you?',
     appearance:'Appearance', dark_mode:'Dark Mode', dark_mode_sub:'Auto-adjusts by time of day & device',
     accent_colour:'Colour', accent_sub:'Choose your theme colour',
     wallpaper:'Wallpaper', upload:'📷 Upload',
@@ -1611,6 +1641,10 @@ const STRINGS = {
     no_widgets:'No widgets yet. Create one above to pin it here.',
     small:'Small', medium:'Medium', wide:'Wide',
     font_size:'Font Size', font_size_sub:'Adjust text for easier reading',
+    about_text:'Still Waters was born from a simple belief: that the most profound transformation begins not with grand gestures, but in the quiet moments you carve out for yourself each day. We created a space that feels as personal and unhurried as a handwritten letter — somewhere your thoughts can settle, your habits can take root, and your inner life can be tended with the same care you give to everything else.',
+    our_mission:'Our Mission',
+    mission_text:'To make mindfulness feel accessible, personal, and genuinely yours — not a rigid routine to perform, but a living practice that grows with you. We believe everyone deserves a space to pause, reflect, and return to themselves, no matter how full their day. Still Waters is that space: private, gentle, and always here when you need it.',
+    made_with:'Made with', for_every_moment:'for every quiet moment',
   },
   es: {
     planner:'Planificador de Mindfulness', tagline:'una práctica diaria',
@@ -1679,6 +1713,11 @@ const STRINGS = {
     mood_present:'Presente', mood_tender:'Delicado', mood_clear:'Claro',
     week_reflection_prompt:'¿Cómo te sientes? ¿Cómo fue tu semana?',
     days_per_week:'días / sem',
+    your_name:'Tu Nombre', your_name_sub:'¿Cómo debería saludarte Still Waters?',
+    about_text:'Still Waters nació de una creencia simple: que la transformación más profunda no comienza con grandes gestos, sino en los momentos de quietud que te reservas cada día. Creamos un espacio que se siente tan personal y sin prisas como una carta escrita a mano — donde tus pensamientos pueden asentarse, tus hábitos pueden echar raíces, y tu vida interior puede cuidarse con el mismo esmero que dedicas a todo lo demás.',
+    our_mission:'Nuestra Misión',
+    mission_text:'Hacer que la atención plena se sienta accesible, personal y genuinamente tuya — no una rutina rígida que cumplir, sino una práctica viva que crece contigo. Creemos que todos merecen un espacio para pausar, reflexionar y volver a sí mismos, sin importar lo lleno que esté su día. Still Waters es ese espacio: privado, gentil, y siempre aquí cuando lo necesites.',
+    made_with:'Hecho con', for_every_moment:'para cada momento de quietud',
   },
   fr: {
     planner:'Planificateur de Pleine Conscience', tagline:'une pratique quotidienne',
@@ -1747,6 +1786,11 @@ const STRINGS = {
     mood_present:'Présent', mood_tender:'Tendre', mood_clear:'Clair',
     week_reflection_prompt:'Comment vous sentez-vous ? Comment s\'est passée votre semaine ?',
     days_per_week:'jours / sem',
+    your_name:'Votre Nom', your_name_sub:'Comment Still Waters doit-il vous saluer ?',
+    about_text:'Still Waters est né d\'une conviction simple : la transformation la plus profonde ne commence pas par de grands gestes, mais dans les moments de calme que vous vous réservez chaque jour. Nous avons créé un espace aussi personnel et tranquille qu\'une lettre manuscrite — où vos pensées peuvent se poser, vos habitudes peuvent s\'enraciner, et votre vie intérieure peut être soignée avec le même soin que vous accordez à tout le reste.',
+    our_mission:'Notre Mission',
+    mission_text:'Rendre la pleine conscience accessible, personnelle et véritablement vôtre — non pas une routine rigide à accomplir, mais une pratique vivante qui grandit avec vous. Nous croyons que chacun mérite un espace pour faire une pause, réfléchir et revenir à soi-même, quelle que soit la charge de sa journée. Still Waters est cet espace : privé, doux, et toujours là quand vous en avez besoin.',
+    made_with:'Conçu avec', for_every_moment:'pour chaque moment de calme',
   },
   nl: {
     planner:'Mindfulness Planner', tagline:'een dagelijkse praktijk',
@@ -1803,6 +1847,11 @@ const STRINGS = {
     mood_present:'Aanwezig', mood_tender:'Teder', mood_clear:'Helder',
     week_reflection_prompt:'Hoe voel je je? Hoe was je week?',
     days_per_week:'dagen/week',
+    your_name:'Jouw Naam', your_name_sub:'Hoe moet Still Waters je begroeten?',
+    about_text:'Still Waters is ontstaan uit een eenvoudig geloof: dat de meest diepgaande verandering niet begint met grote gebaren, maar in de stille momenten die je elke dag voor jezelf vrijmaakt. We creëerden een ruimte die zo persoonlijk en ongehaast aanvoelt als een handgeschreven brief — waar je gedachten kunnen settelen, je gewoontes wortel kunnen schieten, en je innerlijke leven met dezelfde zorg behandeld kan worden die je aan alles anders geeft.',
+    our_mission:'Onze Missie',
+    mission_text:'Mindfulness toegankelijk, persoonlijk en echt van jou laten voelen — geen strikte routine om uit te voeren, maar een levende praktijk die met je meegroeit. We geloven dat iedereen een ruimte verdient om te pauzeren, te reflecteren en bij zichzelf terug te komen, hoe vol de dag ook is. Still Waters is die ruimte: privé, zachtaardig, en altijd hier wanneer je het nodig hebt.',
+    made_with:'Gemaakt met', for_every_moment:'voor elk stil moment',
   },
   de: {
     planner:'Achtsamkeits-Planer', tagline:'eine tägliche Praxis',
@@ -1859,6 +1908,11 @@ const STRINGS = {
     mood_present:'Präsent', mood_tender:'Zart', mood_clear:'Klar',
     week_reflection_prompt:'Wie fühlst du dich? Wie war deine Woche?',
     days_per_week:'Tage/Wo',
+    your_name:'Dein Name', your_name_sub:'Wie soll Still Waters dich begrüßen?',
+    about_text:'Still Waters entstand aus einem einfachen Glauben: dass die tiefste Veränderung nicht mit großen Gesten beginnt, sondern in den stillen Momenten, die du dir jeden Tag selbst schenkst. Wir haben einen Raum geschaffen, der sich so persönlich und unaufgeregt anfühlt wie ein handgeschriebener Brief — wo deine Gedanken sich setzen können, deine Gewohnheiten Wurzeln schlagen können, und dein inneres Leben mit derselben Sorgfalt behandelt wird, die du allem anderen schenkst.',
+    our_mission:'Unsere Mission',
+    mission_text:'Achtsamkeit zugänglich, persönlich und wirklich zu deiner eigenen zu machen — keine starre Routine, die abgearbeitet werden muss, sondern eine lebendige Praxis, die mit dir wächst. Wir glauben, dass jeder einen Raum verdient, um zu pausieren, zu reflektieren und zu sich selbst zurückzukehren, egal wie voll der Tag ist. Still Waters ist dieser Raum: privat, sanft und immer da, wenn du ihn brauchst.',
+    made_with:'Gemacht mit', for_every_moment:'für jeden stillen Moment',
   },
   pt: {
     planner:'Planejador de Mindfulness', tagline:'uma prática diária',
@@ -1915,6 +1969,11 @@ const STRINGS = {
     mood_present:'Presente', mood_tender:'Delicado', mood_clear:'Claro',
     week_reflection_prompt:'Como você está se sentindo? Como foi sua semana?',
     days_per_week:'dias/sem',
+    your_name:'Seu Nome', your_name_sub:'Como o Still Waters deve te saudar?',
+    about_text:'Still Waters nasceu de uma crença simples: que a transformação mais profunda não começa com grandes gestos, mas nos momentos quietos que você reserva para si mesmo todos os dias. Criamos um espaço que parece tão pessoal e tranquilo quanto uma carta escrita à mão — onde seus pensamentos podem se assentar, seus hábitos podem se enraizar, e sua vida interior pode ser cuidada com o mesmo carinho que você dá a tudo o mais.',
+    our_mission:'Nossa Missão',
+    mission_text:'Tornar a atenção plena acessível, pessoal e genuinamente sua — não uma rotina rígida a cumprir, mas uma prática viva que cresce com você. Acreditamos que todos merecem um espaço para pausar, refletir e voltar a si mesmos, não importa quão cheio esteja o dia. Still Waters é esse espaço: privado, gentil, e sempre aqui quando você precisar.',
+    made_with:'Feito com', for_every_moment:'para cada momento quieto',
   },
   zh: {
     planner:'正念计划', tagline:'每日修行',
@@ -1971,6 +2030,11 @@ const STRINGS = {
     mood_present:'临在', mood_tender:'温柔', mood_clear:'清明',
     week_reflection_prompt:'你感觉怎么样？这周过得如何？',
     days_per_week:'天/周',
+    your_name:'你的名字', your_name_sub:'Still Waters 应该如何称呼你？',
+    about_text:'Still Waters 源于一个简单的信念：最深刻的转变并非始于宏大的举动，而是源自你每天为自己留出的静谧时刻。我们创造了一个空间，它如同一封手写的信件那样私密而不急促——在这里，你的思绪可以安顿下来，你的习惯可以生根发芽，你的内心生活也能得到与你对待其他一切事物同样的关怀。',
+    our_mission:'我们的使命',
+    mission_text:'让正念变得平易近人、私人化，并真正属于你——不是要完成的僵硬日常，而是与你共同成长的生活实践。我们相信，无论一天多么忙碌，每个人都应拥有一个停顿、反思并回归自我的空间。Still Waters 就是这样的空间：私密、温和，并在你需要时始终在此。',
+    made_with:'用心制作', for_every_moment:'献给每一个静谧时刻',
   },
   ru: {
     planner:'Планировщик осознанности', tagline:'ежедневная практика',
@@ -2033,6 +2097,11 @@ const STRINGS = {
     no_widgets:'Нет виджетов. Создай выше.', create_widget:'Создать виджет',
     widgets_heading:'Твои виджеты', widgets_sub:'Закрепи важное.',
     day_streak:'дней подряд',
+    your_name:'Твоё имя', your_name_sub:'Как Still Waters должен тебя приветствовать?',
+    about_text:'Still Waters родился из простой веры: самая глубокая перемена начинается не с грандиозных жестов, а в тихих моментах, которые ты выделяешь для себя каждый день. Мы создали пространство, такое же личное и неспешное, как письмо, написанное от руки — где твои мысли могут устояться, привычки могут укорениться, а внутренняя жизнь может получать ту же заботу, что ты даёшь всему остальному.',
+    our_mission:'Наша миссия',
+    mission_text:'Сделать осознанность доступной, личной и по-настоящему твоей — не строгим распорядком, который нужно выполнять, а живой практикой, растущей вместе с тобой. Мы верим, что каждый заслуживает пространства для паузы, размышления и возвращения к себе, независимо от того, насколько насыщен день. Still Waters — это такое пространство: приватное, мягкое и всегда здесь, когда оно нужно.',
+    made_with:'Сделано с', for_every_moment:'для каждого тихого момента',
   },
   it: {
     planner:'Pianificatore di Mindfulness', tagline:'una pratica quotidiana',
@@ -2094,6 +2163,11 @@ const STRINGS = {
     nav_widgets:'Widget', nav_timer:'Timer', add_widget:'+ Aggiungi widget', your_widgets:'Widget fissati',
     no_widgets:'Nessun widget. Creane uno sopra.', create_widget:'Crea widget',
     widgets_heading:'I tuoi widget', widgets_sub:'Fissa ciò che conta di più.',
+    your_name:'Il Tuo Nome', your_name_sub:'Come dovrebbe salutarti Still Waters?',
+    about_text:'Still Waters è nato da una convinzione semplice: che la trasformazione più profonda non inizia con grandi gesti, ma nei momenti di quiete che ti ritagli ogni giorno. Abbiamo creato uno spazio che si sente personale e senza fretta come una lettera scritta a mano — dove i tuoi pensieri possono assestarsi, le tue abitudini possono radicarsi, e la tua vita interiore può essere curata con la stessa attenzione che dedichi a tutto il resto.',
+    our_mission:'La Nostra Missione',
+    mission_text:'Rendere la mindfulness accessibile, personale e genuinamente tua — non una rigida routine da svolgere, ma una pratica viva che cresce con te. Crediamo che tutti meritino uno spazio per fermarsi, riflettere e ritornare a sé stessi, non importa quanto sia pieno la giornata. Still Waters è quello spazio: privato, gentile, e sempre qui quando ne hai bisogno.',
+    made_with:'Fatto con', for_every_moment:'per ogni momento di quiete',
   },
   ja: {
     planner:'マインドフルネス・プランナー', tagline:'日々の実践',
@@ -2155,6 +2229,11 @@ const STRINGS = {
     nav_widgets:'ウィジェット', nav_timer:'タイマー', add_widget:'+ ウィジェット追加', your_widgets:'固定ウィジェット',
     no_widgets:'ウィジェットはありません。上で作成してください。', create_widget:'ウィジェットを作成',
     widgets_heading:'あなたのウィジェット', widgets_sub:'大切なものを固定。',
+    your_name:'あなたの名前', your_name_sub:'Still Watersはどのようにあなたを迎えるべきですか？',
+    about_text:'Still Watersは一つの信念から生まれました——最も深い変化は大きな身振りからではなく、毎日自分のために確保する静かな時間から始まるという信念です。私たちは、手書きの手紙のように個人的でゆったりとした空間を作りました——そこでは思考が落ち着き、習慣が根を張り、内なる生活が他のすべてと同じ配慮で扱われます。',
+    our_mission:'私たちの使命',
+    mission_text:'マインドフルネスを身近で、個人的で、本当にあなた自身のものとして感じられるようにすること——果たすべき厳格な日課ではなく、あなたと共に育つ生きた実践として。どんなに一日が忙しくても、誰もが一時停止し、振り返り、自分自身に戻る空間を持つべきだと私たちは信じています。Still Watersはその空間です：プライベートで、優しく、必要なときにいつもここにあります。',
+    made_with:'制作', for_every_moment:'すべての静かな瞬間のために',
   },
   ht: {
     planner:'Planifikatè Meditasyon', tagline:'yon pratik chak jou',
@@ -2216,6 +2295,11 @@ const STRINGS = {
     nav_widgets:'Wijèt', nav_timer:'Kloktèm', add_widget:'+ Ajoute wijèt', your_widgets:'Wijèt kiple',
     no_widgets:'Pa gen wijèt. Kreye youn anlè.', create_widget:'Kreye wijèt',
     widgets_heading:'Wijèt ou yo', widgets_sub:'Kiple sa ki pi enpòtan.',
+    your_name:'Non Ou', your_name_sub:'Kijan Still Waters ta dwe salye ou?',
+    about_text:'Still Waters te fèt nan yon kwayans senp: pi gwo transfòmasyon pa kòmanse ak gwo jès, men nan moman trankil ou rezève pou tèt ou chak jou. Nou kreye yon espas ki santi li pèsonèl e san kouri tankou yon lèt ekri ak men — kote panse ou ka poze, abitid ou ka pran rasin, e lavi enteryè ou ka jwenn menm swen ou bay tout lòt bagay.',
+    our_mission:'Misyon Nou',
+    mission_text:'Fè meditasyon santi li aksesib, pèsonèl, e vrèman pou ou — pa yon woutin rijid pou ranpli, men yon pratik vivan ki grandi avèk ou. Nou kwè tout moun merite yon espas pou poze, reflechi, e retounen nan tèt yo, kèlkeswa jan jounen an okipe. Still Waters se espas sa a: prive, dou, e toujou la lè ou bezwen li.',
+    made_with:'Fèt ak', for_every_moment:'pou chak moman trankil',
   },
 };
 
@@ -2313,8 +2397,80 @@ async function pushToCloud(){
     const data = collectAllSwData();
     const ref = _cloud.doc(_cloud.db, 'users', currentUser.uid);
     await _cloud.setDoc(ref, { data, updatedAt: Date.now() }, { merge: true });
+    recordUserActivitySnapshot(); // lightweight engagement summary, separate from raw data
   }catch(e){ console.warn('Sync push failed:', e); }
   syncInFlight = false;
+}
+
+// A small, non-sensitive engagement snapshot per account — used only
+// for the owner-facing "Active Users" view. Counts only, no journal text.
+async function recordUserActivitySnapshot(){
+  if(!currentUser || !_cloud) return;
+  try{
+    let totalEntries = 0, totalSessions = 0;
+    const now = new Date();
+    for(let mo=0; mo<6; mo++){
+      const d = new Date(now); d.setMonth(now.getMonth()-mo);
+      const y = d.getFullYear(), m = d.getMonth()+1;
+      totalEntries += (getEntryDates(y,m)||[]).length;
+      const tdata = loadTracker(y,m);
+      totalSessions += tdata.weeks.flatMap(w=>w.days).filter(Boolean).length;
+    }
+    const streak = calcStreak();
+
+    // ── Real feature-level engagement signals ──
+    // Pulled directly from what's actually stored locally, not guessed.
+    const widgets = S.get('sw_widgets', []);
+    const gratitudeToday = (loadToday().gratitude || []).length;
+    let gratitudeTotal = 0;
+    for(let mo=0; mo<6; mo++){
+      const d = new Date(now); d.setMonth(now.getMonth()-mo);
+      const dates = getEntryDates(d.getFullYear(), d.getMonth()+1) || [];
+      dates.forEach(ds=>{ const e=loadEntry(ds); if(e && e.gratitude) gratitudeTotal += e.gratitude.length; });
+    }
+    const customEmojiCount =
+      (S.get('sw_custom_em_journal',[])||[]).length +
+      (S.get('sw_custom_em_gratitude',[])||[]).length +
+      (S.get('sw_custom_em_entry',[])||[]).length;
+    const savedAffirmations = (S.get('sw_saved_affirmations',[])||[]).length;
+    const ambientSoundUsed = S.get('sw_last_ambient', null);
+    const darkModeOn = document.documentElement.getAttribute('data-theme') === 'dark';
+    const langUsed = S.get('sw_lang','en');
+    const accentColour = S.get('sw_accent', null);
+    const fontSize = S.get('sw_font_size', 'medium');
+    const pinEnabled = !!S.get('sw_pin');
+    const notifEnabled = S.get('sw_notif', false);
+    const hasCustomWallpaper = S.get('sw_wp','none') !== 'none';
+    const widgetTypesUsed = [...new Set(widgets.map(w=>w.type))];
+
+    const ref = _cloud.doc(_cloud.db, 'app_users', currentUser.uid);
+    await _cloud.setDoc(ref, {
+      email: currentUser.email,
+      name: currentUser.displayName || S.get('sw_user_name','') || '',
+      lastActive: Date.now(),
+      accountCreated: currentUser.metadata?.creationTime ? new Date(currentUser.metadata.creationTime).getTime() : null,
+      streak, totalEntries, totalSessions,
+      // Feature engagement — what they actually use, not just that they logged in
+      widgetCount: widgets.length,
+      widgetTypesUsed,
+      gratitudeTotal,
+      customEmojiCount,
+      savedAffirmations,
+      ambientSoundUsed,
+      darkModeOn,
+      langUsed,
+      accentColour,
+      fontSize,
+      pinEnabled,
+      notifEnabled,
+      hasCustomWallpaper,
+    }, { merge: true });
+  }catch(e){ console.warn('Activity snapshot failed:', e); }
+}
+
+// Record which ambient sound was last picked — called from the sound selector
+function recordAmbientSoundUsage(soundKey){
+  S.set('sw_last_ambient', soundKey);
 }
 
 // Debounced push — avoid hammering Firestore on every keystroke
@@ -2367,6 +2523,58 @@ function updateAccountUI(user){
     if(signedOutBtn) signedOutBtn.style.display = 'flex';
     if(signedInRow)  signedInRow.style.display = 'none';
   }
+  updateWelcomeGreeting(user);
+}
+
+function getUserFirstName(user){
+  if(!user) return '';
+  if(user.displayName) return user.displayName.split(' ')[0];
+  const stored = S.get('sw_user_name', '');
+  if(stored) return stored.split(' ')[0];
+  return '';
+}
+
+function updateWelcomeGreeting(user){
+  const el = document.getElementById('welcome-greeting');
+  if(!el) return;
+  const name = getUserFirstName(user);
+  if(!name){ el.style.display = 'none'; return; }
+  const hour = new Date().getHours();
+  const timeGreeting = hour < 5 ? 'Still up' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : hour < 22 ? 'Good evening' : 'Resting well';
+  el.textContent = `✦ ${timeGreeting}, ${name}`;
+  el.style.display = 'block';
+}
+
+async function saveDisplayName(){
+  const input = document.getElementById('display-name-input');
+  const name = input.value.trim();
+  if(!name){ toast('Please enter a name'); return; }
+
+  S.set('sw_user_name', name);
+
+  // If signed in, also update the Firebase profile so it syncs across devices
+  if(currentUser && _cloud){
+    try{
+      await _cloud.updateProfile(currentUser, { displayName: name });
+      recordUserActivitySnapshot(); // keep the owner-facing list showing the latest name too
+    }catch(e){ console.warn('Could not update profile name:', e); }
+  }
+
+  updateWelcomeGreeting(currentUser);
+  toast('✦ Saved — hello, ' + name.split(' ')[0]);
+}
+
+function loadDisplayNameIntoSettings(){
+  const input = document.getElementById('display-name-input');
+  const hint  = document.getElementById('display-name-hint');
+  if(!input) return;
+  input.value = getUserFirstNameFull(currentUser);
+  if(hint) hint.style.display = currentUser ? 'none' : 'block';
+}
+
+function getUserFirstNameFull(user){
+  if(user && user.displayName) return user.displayName;
+  return S.get('sw_user_name', '');
 }
 
 function initCloudSync(){
@@ -2382,6 +2590,7 @@ function initCloudSync(){
         toast('✦ Synced — ' + user.email);
         // Push once immediately in case this device has newer local data
         pushToCloud();
+        recordUserActivitySnapshot();
       }
     });
   });
@@ -2477,6 +2686,102 @@ async function renderSiteStats(){
     </div>
     <div style="font-size:0.78rem;color:var(--ink-mid);font-style:italic;margin-top:0.7rem;text-align:center;">Last visit: ${lastVisit}</div>
   `;
+  renderActiveUsers();
+}
+
+async function renderActiveUsers(){
+  const el = document.getElementById('active-users-content');
+  if(!el || !_cloud) return;
+  el.innerHTML = '<span style="font-style:italic;color:var(--ink-mid);">Loading…</span>';
+  try{
+    const snap = await _cloud.getDocs(_cloud.collection(_cloud.db, 'app_users'));
+    const users = [];
+    snap.forEach(docSnap => users.push(docSnap.data()));
+
+    if(!users.length){
+      el.innerHTML = '<span style="font-style:italic;color:var(--ink-mid);">No registered accounts yet.</span>';
+      return;
+    }
+
+    // Sort by most recently active first
+    users.sort((a,b) => (b.lastActive||0) - (a.lastActive||0));
+
+    const now = Date.now();
+    const DAY = 24*60*60*1000;
+
+    // Quick "real usage" score — counts how many distinct features a person has actually touched,
+    // not just whether they logged in. This is the difference between traffic and engagement.
+    function engagementScore(u){
+      let score = 0;
+      if((u.totalEntries||0) > 0) score++;
+      if((u.totalSessions||0) > 0) score++;
+      if((u.widgetCount||0) > 0) score++;
+      if((u.gratitudeTotal||0) > 0) score++;
+      if(u.ambientSoundUsed) score++;
+      if((u.savedAffirmations||0) > 0) score++;
+      if(u.darkModeOn) score++;
+      if(u.langUsed && u.langUsed !== 'en') score++;
+      if(u.hasCustomWallpaper) score++;
+      if(u.pinEnabled) score++;
+      return score;
+    }
+    const MAX_SCORE = 10;
+
+    const langNames = {en:'English',es:'Español',fr:'Français',nl:'Nederlands',de:'Deutsch',pt:'Português',zh:'中文',ru:'Русский',it:'Italiano',ja:'日本語',ht:'Kreyòl'};
+
+    el.innerHTML = `
+      <div style="font-size:0.78rem;color:var(--ink-mid);font-style:italic;margin-bottom:0.6rem;">${users.length} registered account${users.length===1?'':'s'} · tap any to see full feature usage</div>
+      ${users.map((u,i)=>{
+        const lastActiveAgo = u.lastActive ? Math.round((now - u.lastActive)/DAY) : null;
+        const activeLabel = lastActiveAgo === null ? '—' : lastActiveAgo === 0 ? 'Today' : lastActiveAgo === 1 ? 'Yesterday' : lastActiveAgo+' days ago';
+        const isRecent = lastActiveAgo !== null && lastActiveAgo <= 3;
+        const score = engagementScore(u);
+        const scorePct = Math.round((score/MAX_SCORE)*100);
+        const scoreColor = score >= 6 ? 'var(--sage)' : score >= 3 ? 'var(--gold)' : 'var(--clay)';
+
+        return `
+        <div style="background:var(--parchment-deep);border:1px solid var(--mist);border-left:3px solid ${isRecent?'var(--sage)':'var(--mist)'};border-radius:0 var(--radius) var(--radius) 0;padding:0.7rem 1rem;margin-bottom:0.5rem;cursor:pointer;"
+          onclick="document.getElementById('user-detail-${i}').style.display=document.getElementById('user-detail-${i}').style.display==='none'?'block':'none'">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;">
+            <span style="font-size:0.92rem;color:var(--ink);word-break:break-all;">${u.name ? u.name+' · ' : ''}${u.email||'—'}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.1em;text-transform:uppercase;color:${isRecent?'var(--sage)':'var(--ink-mid)'};white-space:nowrap;">${activeLabel}</span>
+          </div>
+          <div style="display:flex;gap:1.2rem;margin-top:0.4rem;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--ink-soft);">
+            <span>🔥 ${u.streak||0} day streak</span>
+            <span>📝 ${u.totalEntries||0} entries</span>
+            <span>🧘 ${u.totalSessions||0} sessions</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;">
+            <div style="flex:1;height:4px;background:var(--ink-faint);border-radius:2px;overflow:hidden;">
+              <div style="height:100%;width:${scorePct}%;background:${scoreColor};"></div>
+            </div>
+            <span style="font-family:'DM Mono',monospace;font-size:0.48rem;color:${scoreColor};white-space:nowrap;">${score}/${MAX_SCORE} features used</span>
+          </div>
+          <div id="user-detail-${i}" style="display:none;margin-top:0.7rem;padding-top:0.6rem;border-top:1px solid var(--mist);" onclick="event.stopPropagation()">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;font-size:0.78rem;color:var(--ink-soft);">
+              <div>🙏 Gratitude entries: <strong>${u.gratitudeTotal||0}</strong></div>
+              <div>✨ Saved affirmations: <strong>${u.savedAffirmations||0}</strong></div>
+              <div>❋ Widgets created: <strong>${u.widgetCount||0}</strong></div>
+              <div>😊 Custom emoji added: <strong>${u.customEmojiCount||0}</strong></div>
+              <div>🎵 Last ambient sound: <strong>${u.ambientSoundUsed || 'none'}</strong></div>
+              <div>🌓 Dark mode: <strong>${u.darkModeOn ? 'On' : 'Off'}</strong></div>
+              <div>🌐 Language: <strong>${langNames[u.langUsed] || u.langUsed || 'English'}</strong></div>
+              <div>🖼 Custom wallpaper: <strong>${u.hasCustomWallpaper ? 'Yes' : 'No'}</strong></div>
+              <div>🔒 PIN lock: <strong>${u.pinEnabled ? 'Enabled' : 'Off'}</strong></div>
+              <div>🔔 Reminders: <strong>${u.notifEnabled ? 'On' : 'Off'}</strong></div>
+              <div>🔤 Font size: <strong>${u.fontSize || 'medium'}</strong></div>
+              <div>🎨 Accent colour: <strong style="color:${u.accentColour||'inherit'};">${u.accentColour || 'default'}</strong></div>
+            </div>
+            ${u.widgetTypesUsed && u.widgetTypesUsed.length ? `<div style="margin-top:0.5rem;font-size:0.78rem;color:var(--ink-soft);">Widget types used: <strong>${u.widgetTypesUsed.join(', ')}</strong></div>` : ''}
+            ${u.accountCreated ? `<div style="margin-top:0.4rem;font-size:0.72rem;color:var(--ink-mid);font-style:italic;">Account created ${new Date(u.accountCreated).toLocaleDateString()}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  }catch(e){
+    el.innerHTML = '<span style="font-style:italic;color:var(--clay);">Unable to load accounts.</span>';
+    console.warn('Active users load failed:', e);
+  }
 }
 
 function toggleSiteStats(){
@@ -2507,17 +2812,20 @@ function switchAuthTab(mode){
   const submitBtn = document.getElementById('auth-submit-btn');
   const forgotBtn = document.getElementById('auth-forgot-btn');
   const subtitle  = document.getElementById('auth-modal-subtitle');
+  const nameField = document.getElementById('auth-name-field');
   if(mode === 'signin'){
     signinTab.style.borderBottomColor = 'var(--sage)'; signinTab.style.color = 'var(--sage)';
     signupTab.style.borderBottomColor = 'transparent'; signupTab.style.color = 'var(--ink-mid)';
     submitBtn.textContent = 'Sign In ✦';
     forgotBtn.style.display = 'block';
+    nameField.style.display = 'none';
     subtitle.textContent = 'Sign in to access your data anywhere';
   } else {
     signupTab.style.borderBottomColor = 'var(--sage)'; signupTab.style.color = 'var(--sage)';
     signinTab.style.borderBottomColor = 'transparent'; signinTab.style.color = 'var(--ink-mid)';
     submitBtn.textContent = 'Create Account ✦';
     forgotBtn.style.display = 'none';
+    nameField.style.display = 'block';
     subtitle.textContent = 'Create an account to sync across devices';
   }
   document.getElementById('auth-error').style.display = 'none';
@@ -2547,7 +2855,9 @@ async function submitAuth(){
   if(!_cloud){ showAuthError('Still loading — please try again in a moment.'); return; }
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
+  const name = document.getElementById('auth-name').value.trim();
   if(!email || !password){ showAuthError('Please fill in both fields.'); return; }
+  if(authMode === 'signup' && !name){ showAuthError('Please tell us your name.'); return; }
 
   const btn = document.getElementById('auth-submit-btn');
   btn.textContent = '...'; btn.disabled = true;
@@ -2556,11 +2866,15 @@ async function submitAuth(){
     if(authMode === 'signin'){
       await _cloud.signInWithEmailAndPassword(_cloud.auth, email, password);
     } else {
-      await _cloud.createUserWithEmailAndPassword(_cloud.auth, email, password);
+      const cred = await _cloud.createUserWithEmailAndPassword(_cloud.auth, email, password);
+      await _cloud.updateProfile(cred.user, { displayName: name });
+      S.set('sw_user_name', name); // local fallback, also synced via S.set's cloud hook
+      toast('✦ Welcome to Still Waters, ' + name);
     }
     closeAuthModal();
     document.getElementById('auth-email').value = '';
     document.getElementById('auth-password').value = '';
+    document.getElementById('auth-name').value = '';
   }catch(e){
     showAuthError(friendlyAuthError(e.code));
   }
@@ -2869,6 +3183,7 @@ function initToday(){
   const month=now.toLocaleDateString('en-GB',{month:'long'});
   document.getElementById('today-date-heading').textContent =
     weekday+' '+ordinal(dayNum)+' '+month;
+  updateWelcomeGreeting(currentUser);
   setJournalPrompt();
   const td=loadToday();
   document.querySelectorAll('#today-mood-grid .mood-chip').forEach(btn=>{
@@ -3690,6 +4005,7 @@ function startLoFi(){
 function initAmbientSound(){
   const sel=document.getElementById('ambient-sound'); if(!sel) return;
   sel.onchange=()=>{ const v=sel.value; stopAmbient();
+    recordAmbientSoundUsage(v);
     if(v==='rain') startRain(); else if(v==='forest') startForest(); else if(v==='ocean') startOcean();
     else if(v==='chimes') startChimes(); else if(v==='bowls') startBowls();
     else if(v==='solfeggio') startSolfeggio(); else if(v==='lofi') startLoFi();
@@ -3894,6 +4210,8 @@ const WALLPAPERS = {
 function renderSettings(){
   // Owner-only sections — re-check on every Settings visit as a safety net
   updateOwnerOnlyUI(currentUser);
+  // Your Name
+  loadDisplayNameIntoSettings();
   // Font size
   document.querySelectorAll('.font-size-btn').forEach(btn=>{
     btn.addEventListener('click',()=>setFontSize(btn.dataset.size));
@@ -4313,6 +4631,112 @@ function saveWidgetInlineEdit(id, field, val){
   if(w){ w[field]=val; saveWidgets(list); }
 }
 
+/* ════════════════════════════════════════════
+   WIDGET EXPORT — Save as Image
+   Draws the widget's content onto an HTML canvas
+   and downloads it as a PNG, styled to match the
+   app's parchment aesthetic.
+════════════════════════════════════════════ */
+function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = text.split(' ');
+  let line = '';
+  let lines = [];
+  for(let i=0;i<words.length;i++){
+    const testLine = line + words[i] + ' ';
+    if(ctx.measureText(testLine).width > maxWidth && i > 0){
+      lines.push(line.trim());
+      line = words[i] + ' ';
+    } else {
+      line = testLine;
+    }
+  }
+  lines.push(line.trim());
+  lines.forEach((l,i)=> ctx.fillText(l, x, y + i*lineHeight));
+  return lines.length;
+}
+
+function exportWidgetAsImage(widgetId){
+  const list = loadWidgets();
+  const w = list.find(item => item.id === widgetId);
+  if(!w){ toast('Widget not found'); return; }
+
+  const W = 720, H = 480;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const accentColors = { sage:'#6e8060', gold:'#c49a3c', clay:'#b87058', mist:'#7a8a9a', lavender:'#7a6ea8' };
+  const accent = accentColors[w.color] || accentColors.sage;
+
+  ctx.fillStyle = '#ede6d8';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = '#d4d8d0';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, W-2, H-2);
+
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, 0, W, 10);
+
+  ctx.font = '48px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#1a1410';
+  ctx.fillText(WGT_ICONS[w.type] || '❋', 48, 100);
+
+  ctx.font = '28px Georgia, serif';
+  ctx.fillText(w.title || '', 48, 160);
+
+  ctx.strokeStyle = '#d4d8d0';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(48, 185); ctx.lineTo(W-48, 185); ctx.stroke();
+
+  ctx.fillStyle = '#3a332c';
+  ctx.font = 'italic 26px Georgia, serif';
+
+  if(w.type === 'streak'){
+    ctx.textAlign = 'center';
+    ctx.fillStyle = accent;
+    ctx.font = '90px Georgia, serif';
+    ctx.fillText(String(calcStreak()), W/2, 320);
+    ctx.font = '20px monospace';
+    ctx.fillStyle = '#8a8070';
+    ctx.fillText((t('day_streak')||'day streak').toUpperCase(), W/2, 360);
+  } else if(w.type === 'checklist' && Array.isArray(w.content)){
+    ctx.textAlign = 'left';
+    ctx.font = '24px Georgia, serif';
+    w.content.slice(0,8).forEach((item,i)=>{
+      ctx.fillStyle = item.done ? '#8a8070' : '#3a332c';
+      const mark = item.done ? '☑' : '☐';
+      ctx.fillText(`${mark}  ${item.text}`, 48, 230 + i*42);
+    });
+  } else if(w.type === 'focus'){
+    ctx.textAlign = 'center';
+    ctx.font = '44px Georgia, serif';
+    ctx.fillStyle = '#1a1410';
+    ctx.fillText(w.content || '—', W/2, 290);
+  } else {
+    ctx.textAlign = 'left';
+    wrapCanvasText(ctx, (w.content||'').toString(), 48, 230, W-96, 38);
+  }
+
+  ctx.textAlign = 'center';
+  ctx.font = '16px monospace';
+  ctx.fillStyle = '#a89a82';
+  ctx.fillText('STILL WATERS', W/2, H-30);
+
+  canvas.toBlob(blob=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `still-waters-${(w.title||'widget').toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,30)}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    toast('✦ Widget saved as image');
+  }, 'image/png');
+}
+
 function renderWidgets(){
   const list=loadWidgets();
   const grid=document.getElementById('widget-grid');
@@ -4363,6 +4787,7 @@ function renderWidgets(){
           style="outline:none;"
           onblur="saveWidgetInlineEdit('${w.id}','title',this.textContent)"
         >${w.title}</span>
+        <button class="widget-export" onclick="exportWidgetAsImage('${w.id}')" title="Save as image" style="background:none;border:none;cursor:pointer;color:var(--ink-mid);font-size:0.85rem;padding:0 0.2rem;">⬇</button>
         <button class="widget-del" onclick="deleteWidget('${w.id}')" title="Remove">✕</button>
       </div>
       <div>${bodyHTML}</div>`;
