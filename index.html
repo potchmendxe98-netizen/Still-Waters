@@ -699,7 +699,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
       <div class="sec-div"><span class="sec-line"></span><span class="sec-label" data-i18n="todays_intention">Today's intention</span><span class="sec-line"></span></div>
       <div class="intention-box">
         <label class="field-label" data-i18n="set_intention">Set your intention for today</label>
-        <input id="today-intention" class="text-input" type="text" data-i18n-ph="intention_ph"/>
+        <input id="today-intention" class="text-input" type="text" autocomplete="off" data-i18n-ph="intention_ph"/>
       </div>
 
       <div class="sec-div"><span class="sec-line"></span><span class="sec-label" data-i18n="practices">Practices</span><span class="sec-line"></span></div>
@@ -747,7 +747,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
         </div>
         <!-- Name input -->
         <div style="display:flex;gap:0.6rem;align-items:center;margin-top:0.3rem;">
-          <input id="other-habit-name-input" class="text-input" type="text" maxlength="28" data-i18n-ph="other_ph" style="border-bottom-color:var(--gold);flex:1;"/>
+          <input id="other-habit-name-input" class="text-input" type="text" autocomplete="off" maxlength="28" data-i18n-ph="other_ph" style="border-bottom-color:var(--gold);flex:1;"/>
           <button class="btn btn-gold" onclick="saveOtherHabitName()" style="flex-shrink:0;" data-i18n="set">Set ✦</button>
         </div>
       </div>
@@ -757,7 +757,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
       <div style="background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:1.4rem 1.6rem;">
         <label class="field-label" id="journal-prompt-label">Reflection prompt</label>
         <div class="ruled">
-          <textarea id="today-journal" class="journal-area" rows="6" data-i18n-ph="journal_ph"></textarea>
+          <textarea id="today-journal" class="journal-area" rows="6" autocomplete="off" data-i18n-ph="journal_ph"></textarea>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.6rem;">
           <span style="font-family:'DM Mono',monospace;font-size:0.52rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-mid);" id="word-count">0 <span data-i18n="words">words</span></span>
@@ -799,7 +799,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
           </div>
         </div>
         <div class="g-add-row">
-          <input id="g-input" class="text-input" type="text" data-i18n-ph="grateful_ph" style="border-bottom:1px dashed var(--mist);font-style:italic;"/>
+          <input id="g-input" class="text-input" type="text" autocomplete="off" data-i18n-ph="grateful_ph" style="border-bottom:1px dashed var(--mist);font-style:italic;"/>
           <button class="btn btn-gold" onclick="addGratitude()" style="flex-shrink:0;" data-i18n="add">+ Add</button>
         </div>
       </div>
@@ -821,7 +821,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
           </select>
         </div>
         <div class="ef" style="grid-column:1/-1;"><label data-i18n="one_noticed">One thing I noticed</label>
-          <input id="today-noticed" class="text-input" type="text" data-i18n-ph="noticed_ph"/>
+          <input id="today-noticed" class="text-input" type="text" autocomplete="off" data-i18n-ph="noticed_ph"/>
         </div>
       </div>
 
@@ -847,7 +847,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
       <!-- This Month's Intention — shown immediately on journal open -->
       <div class="tracker-intention" style="margin-bottom:1.8rem;">
         <label class="field-label" data-i18n="month_intention">This Month's Intention</label>
-        <input id="j-month-intention" class="text-input" type="text" data-i18n-ph="month_intention_ph"/>
+        <input id="j-month-intention" class="text-input" type="text" autocomplete="off" data-i18n-ph="month_intention_ph"/>
       </div>
 
       <!-- Month nav -->
@@ -890,7 +890,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
                 <button class="mood-btn" data-mood="clear" data-i18n="mood_clear">Clear</button>
               </div>
             </div>
-            <div class="ef"><label data-i18n="todays_intention">Today's Intention</label><input type="text" id="e-intention" data-i18n-ph="intention_ph"/></div>
+            <div class="ef"><label data-i18n="todays_intention">Today's Intention</label><input type="text" id="e-intention" autocomplete="off" data-i18n-ph="intention_ph"/></div>
             <div class="ef journal-panel-section"><label data-i18n="nav_journal">Journal</label>
               <div class="journal-emoji-bar" style="margin-bottom:0.3rem;">
                 <span class="bar-label">Add →</span>
@@ -920,9 +920,9 @@ body.hide-journal .journal-panel-section { display:none !important; }
                   </div>
                 </div>
               </div>
-              <div class="ruled"><textarea class="journal-area" id="e-body" rows="7" data-i18n-ph="journal_ph2"></textarea></div>
+              <div class="ruled"><textarea class="journal-area" id="e-body" rows="7" autocomplete="off" data-i18n-ph="journal_ph2"></textarea></div>
             </div>
-            <div class="ef"><label data-i18n="one_noticed">One thing I noticed</label><input type="text" id="e-noticed" data-i18n-ph="noticed_ph"/></div>
+            <div class="ef"><label data-i18n="one_noticed">One thing I noticed</label><input type="text" id="e-noticed" autocomplete="off" data-i18n-ph="noticed_ph"/></div>
             <div class="save-row"><button class="save-btn" id="e-save-btn" data-i18n="save_entry">Save Study ✦</button></div>
           </div>
         </div>
@@ -1036,7 +1036,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
       <div style="margin-top:1.2rem;background:var(--sage-pale);border:1px solid var(--sage-light);border-radius:var(--radius);padding:1.2rem 1.4rem;">
         <label class="field-label">Add a Personal Affirmation</label>
         <div style="display:flex;gap:0.6rem;align-items:flex-end;margin-top:0.4rem;">
-          <textarea id="custom-affirmation-input" style="flex:1;background:transparent;border:none;border-bottom:1px dashed var(--sage-light);font-family:'Cormorant Garamond',serif;font-size:1rem;font-style:italic;color:var(--ink);outline:none;resize:none;min-height:48px;line-height:1.6;padding:0.2rem 0;" placeholder="I am…" rows="2"></textarea>
+          <textarea id="custom-affirmation-input" autocomplete="off" style="flex:1;background:transparent;border:none;border-bottom:1px dashed var(--sage-light);font-family:'Cormorant Garamond',serif;font-size:1rem;font-style:italic;color:var(--ink);outline:none;resize:none;min-height:48px;line-height:1.6;padding:0.2rem 0;" placeholder="I am…" rows="2"></textarea>
           <button class="btn btn-sage" onclick="addCustomAffirmation()" style="flex-shrink:0;font-size:0.5rem;">+ Add</button>
         </div>
       </div>
@@ -1144,11 +1144,11 @@ body.hide-journal .journal-panel-section { display:none !important; }
           </div>
           <div class="ef">
             <label data-i18n="widget_title">Widget Title</label>
-            <input type="text" id="wgt-title-input" class="text-input" maxlength="32" data-i18n-ph="widget_title_ph" style="font-style:normal;"/>
+            <input type="text" id="wgt-title-input" class="text-input" autocomplete="off" maxlength="32" data-i18n-ph="widget_title_ph" style="font-style:normal;"/>
           </div>
           <div class="ef" style="grid-column:1/-1;">
             <label data-i18n="widget_content">Content</label>
-            <textarea id="wgt-content-input" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--mist);padding:0.4rem 0;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--ink);outline:none;resize:none;min-height:60px;line-height:1.6;" data-i18n-ph="widget_content_ph"></textarea>
+            <textarea id="wgt-content-input" autocomplete="off" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--mist);padding:0.4rem 0;font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--ink);outline:none;resize:none;min-height:60px;line-height:1.6;" data-i18n-ph="widget_content_ph"></textarea>
           </div>
           <div class="ef">
             <label data-i18n="widget_colour">Colour</label>
@@ -1370,7 +1370,7 @@ body.hide-journal .journal-panel-section { display:none !important; }
         <div id="pin-setup-row" style="display:none;" class="setting-row" style="flex-direction:column;align-items:flex-start;gap:0.5rem;">
           <div class="setting-label" data-i18n="set_pin">Set your PIN</div>
           <div style="display:flex;gap:0.5rem;align-items:center;">
-            <input type="password" id="pin-input" maxlength="4" placeholder="• • • •" style="width:80px;background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:1.2rem;color:var(--ink);outline:none;letter-spacing:0.4em;text-align:center;"/>
+            <input type="password" id="pin-input" maxlength="4" autocomplete="off" placeholder="• • • •" style="width:80px;background:var(--parchment-deep);border:1px solid var(--mist);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:1.2rem;color:var(--ink);outline:none;letter-spacing:0.4em;text-align:center;"/>
             <button class="btn btn-sage" onclick="savePIN()" data-i18n="save_pin">Save PIN</button>
             <button class="btn btn-ghost" onclick="clearPIN()" data-i18n="clear_pin">Clear PIN</button>
           </div>
@@ -2692,6 +2692,14 @@ async function renderSiteStats(){
 async function renderActiveUsers(){
   const el = document.getElementById('active-users-content');
   if(!el || !_cloud) return;
+  // Hard code-level gate — never fetch other people's account data unless
+  // the signed-in user is verified as the owner. The hidden panel alone is
+  // not enough protection, since someone could call this function directly.
+  const isOwner = !!(currentUser && currentUser.email && currentUser.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
+  if(!isOwner){
+    el.innerHTML = '';
+    return;
+  }
   el.innerHTML = '<span style="font-style:italic;color:var(--ink-mid);">Loading…</span>';
   try{
     const snap = await _cloud.getDocs(_cloud.collection(_cloud.db, 'app_users'));
@@ -3556,7 +3564,7 @@ function renderTracker(){
           <select data-w="${wi}" data-f="duration"><option value="">—</option>${durOpts}</select>
         </div>
         <div class="meta-field"><label style="color:var(--sage);">♡ How are you feeling?</label>
-          <textarea rows="3" data-w="${wi}" data-f="note" placeholder="${t('week_reflection_prompt')}">${week.note||''}</textarea>
+          <textarea rows="3" data-w="${wi}" data-f="note" autocomplete="off" placeholder="${t('week_reflection_prompt')}">${week.note||''}</textarea>
         </div>
       </div>`;
     cont.appendChild(card);
