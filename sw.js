@@ -2,7 +2,7 @@
 // Handles offline caching and daily reminder notifications via Periodic Background Sync
 // (where supported) and a fallback Background Sync / message-based scheduler.
 
-const CACHE_NAME = 'still-waters-v1';
+const CACHE_NAME = 'still-waters-v2';
 const APP_SHELL = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {
